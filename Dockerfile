@@ -5,14 +5,14 @@ RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add -
 RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
 RUN apt-get update && apt-get install -y java-1.8.0-amazon-corretto-jdk
 
-# # Enable all repositories
-# RUN sed -i 's/# deb/deb/g' /etc/apt/sources.list
+# Enable all repositories
+RUN sed -i 's/# deb/deb/g' /etc/apt/sources.list
 
-# RUN apt-get update && \
-#     apt-get install --no-install-recommends -y \
-#     dbus systemd systemd-cron rsyslog iproute2 python python-apt sudo bash ca-certificates && \
-#     apt-get clean && \
-#     rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+    dbus systemd systemd-cron rsyslog iproute2 python python-apt sudo bash ca-certificates && \
+    apt-get clean && \
+    rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG JAR_FILENAME
 ARG POSTGRES_USERNAME
