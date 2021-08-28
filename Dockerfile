@@ -33,7 +33,6 @@ RUN locale-gen "pt_BR.UTF-8"
 RUN update-locale 
 
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./e-SUS-PEC.conf /var/init/e-SUS-PEC.conf
 COPY ./install.sh install.sh
 COPY ./run.sh run.sh
 

@@ -33,7 +33,6 @@ services:
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
-      - ./e-SUS-PEC.conf:/var/init/e-SUS-PEC.conf
       - ./install.sh:/var/www/html/install.sh
       - ./run.sh:/var/www/html/run.sh
     ports:
