@@ -1,0 +1,43 @@
+version: "3"
+services:
+  psql:
+    container_name: esus_psql
+    restart: always
+    image: postgres
+    volumes:
+      - ./data/psql_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRESQL_PORT}:5432"
+  pgweb:
+    container_name: esus_pgweb
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - "${PGWEB_PORT}:8081"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      - psql
+  app:
+    container_name: esus_app
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args: 
+        - POSTGRES_DATABASE=${POSTGRES_DB}
+        - POSTGRES_USERNAME=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./e-SUS-PEC.conf:/var/init/e-SUS-PEC.conf
+      - ./install.sh:/var/www/html/install.sh
+      - ./run.sh:/var/www/html/run.sh
+    ports:
+      - "${APP_PORT}:8080"
+    stdin_open: true
+    depends_on:
+      - psql
