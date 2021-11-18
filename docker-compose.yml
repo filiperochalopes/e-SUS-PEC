@@ -32,9 +32,12 @@ services:
         - POSTGRES_DATABASE=${POSTGRES_DB}
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    command: /bin/sh -c "chmod +x /opt/e-SUS/webserver/standalone.sh && sh /opt/e-SUS/webserver/standalone.sh"
+    stdin_open: true
     volumes:
       - ./install.sh:/var/www/html/install.sh
       - ./run.sh:/var/www/html/run.sh
+      - ./data/e-SUS:/opt/e-SUS
     ports:
       - "${APP_PORT}:8080"
     stdin_open: true

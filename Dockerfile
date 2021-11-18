@@ -37,3 +37,5 @@ COPY ./install.sh install.sh
 COPY ./run.sh run.sh
 
 EXPOSE 8080
+
+# CMD "chmod +x /var/www/html/run.sh && sh /var/www/html/run.sh && /bin/bash"
