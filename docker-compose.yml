@@ -3,7 +3,7 @@ services:
   psql:
     container_name: esus_psql
     restart: always
-    image: postgres
+    image: postgres:13.5
     volumes:
       - ./data/psql_db:/var/lib/postgresql/data
     environment:
