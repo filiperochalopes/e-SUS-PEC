@@ -15,10 +15,17 @@ Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser �
 ```sh
 # Depois de rodar novamente os containers
 docker-compose up -d
-# Inicialize o servidor
-docker exec -it esus_app bash -c "sh /var/www/html/run.sh"
+```
+
+## Dump databse
+
+```sh
+docker exec -it esus_psql bash
+export NOW=$(date +%Y_%m_%d_%H_%M_%S)
+pg_dump --username=${POSTGRES_USER} -W ${POSTGRES_DB} > /tmp/dumps/${POSTGRES_DB}_${NOW}.sql
 ```
 
 ## Known Issues
 
-A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"
+- Testes realizados com versão `4.2.7` e `4.2.8` não foram bem sucedidos
+- A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"
