@@ -17,12 +17,16 @@ Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser Ã
 docker-compose up -d
 ```
 
-## Dump databse
+## Fazendo backup do banco de dados
 
-```sh
-docker exec -it esus_psql bash
-export NOW=$(date +%Y_%m_%d_%H_%M_%S)
-pg_dump --username=${POSTGRES_USER} -W ${POSTGRES_DB} > /tmp/dumps/${POSTGRES_DB}_${NOW}.sql
+```bash
+docker exec -it esus_psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
+```
+
+## Restaurando backup
+
+```bash
+pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 ```
 
 ## Known Issues
