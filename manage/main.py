@@ -34,8 +34,39 @@ class Cidadao(db.Model):
 
 @app.route("/")
 def hello_world():
+    '''
+    Tabelas envolvidas: tb_medicao
+    '''
+    # pacientes com diabetes
+    # grafico com glicemias maiores que 200
+    # grafico com pa maiores que 140/90
+    # numero de pacientes com diabetes e pressao alta, asma e lista de problemas por ordem de incidencia
     return "<p>Hello, World!</p>"
 
+@app.route("/pacientes")
+def pacientes():
+    # buca por pacientes, mostrnado numero de telefone, numero de consultas, lista de problemas e documentos
+    # a intencao aqui eh exportar o prontuario para o pin, comecar por aqui
+    return "<p>Hello, World!</p>"
+
+@app.route("/exames")
+def exames():
+    return "<p>Hello, World!</p>"
+
+@app.route("/medicamentos")
+def medicamentos():
+    '''
+    Tabelas envolvidas: tb_medicamento, tb_forma_farmaceutica
+    '''
+    return "<p>Hello, World!</p>"
+
+@app.route("/prescricoes")
+def prescricoes():
+    '''
+    Tabelas envolvidas: tb_receita_medicamento, tb_medicamento, tb_forma_farmaceutica
+    Retorna: json de prescrições prontas para alimentar
+    '''
+    return "<p>Hello, World!</p>"
 
 @app.route("/db-test")
 def db_test():

@@ -44,15 +44,15 @@ services:
     stdin_open: true
     depends_on:
       - psql
-  managedb:
-    container_name: esus_managedb
+  manage:
+    container_name: esus_manage
     restart: always
     build:
-      context: managedb
+      context: manage
       dockerfile: Dockerfile
     volumes:
-      - ./managedb:/app
-      - ./managedb/nginx.conf:/etc/nginx/sites-enabled/default
+      - ./manage:/app
+      - ./manage/nginx.conf:/etc/nginx/sites-enabled/default
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
     stdin_open: true
