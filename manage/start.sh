@@ -1,4 +1,4 @@
 #!/bin/bash
 
 service nginx start
-python /app/main.py
+python /app/run.py

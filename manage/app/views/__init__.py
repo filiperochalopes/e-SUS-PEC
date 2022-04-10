@@ -1,38 +1,12 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-import os
+import json
+from flask import Blueprint
+from app.models.IniciarConsulta import Ciap
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-db = SQLAlchemy(app)
-
-# TODO tb_evolucao_objetivo
-# TODO tb_evolucao_subjetivo
-# TODO tb_evolucao_avaliacao
-# TODO tb_evolucao_plano
-# TODO tb_exame_requisitado
-# TODO rl_evolucao_avaliacao_ciap_cid
+all_views = Blueprint('all', __name__,
+                      template_folder='templates')
 
 
-class Cidadao(db.Model):
-    co_seq_cidadao = db.Column(db.Integer, primary_key=True)
-    no_cidadao = db.Column(db.Text)
-    nu_cns = db.Column(db.Text)
-    nu_telefone_residencial = db.Column(db.Text)
-    nu_telefone_celular = db.Column(db.Text)
-    nu_telefone_contato = db.Column(db.Text)
-    no_sexo = db.Column(db.Text)
-    dt_nascimento = db.Column(db.DateTime)
-
-    __tablename__ = "tb_cidadao"
-
-    def __repr__(self):
-        return '<User %r>' % self.nu_cns
-
-
-@app.route("/")
+@all_views.route("/")
 def hello_world():
     '''
     Tabelas envolvidas: tb_medicao
@@ -43,24 +17,41 @@ def hello_world():
     # numero de pacientes com diabetes e pressao alta, asma e lista de problemas por ordem de incidencia
     return "<p>Hello, World!</p>"
 
-@app.route("/pacientes")
+
+@all_views.route("/pacientes")
 def pacientes():
     # buca por pacientes, mostrnado numero de telefone, numero de consultas, lista de problemas e documentos
     # a intencao aqui eh exportar o prontuario para o pin, comecar por aqui
     return "<p>Hello, World!</p>"
 
-@app.route("/exames")
+
+@all_views.route("/procedimentos")
 def exames():
+    Procedimento.query.all()
     return "<p>Hello, World!</p>"
 
-@app.route("/medicamentos")
+
+@all_views.route("/medicamentos")
 def medicamentos():
     '''
     Tabelas envolvidas: tb_medicamento, tb_forma_farmaceutica
     '''
+    Medicamento.query.all()
     return "<p>Hello, World!</p>"
 
-@app.route("/prescricoes")
+
+@all_views.route("/fixtures/<table>")
+def fixtures(table: str = 'procedimentos'):
+    '''
+    Captura a lista em formato de fixtures
+    '''
+    if table == 'motivo_consulta':
+        ciap_list_all = Ciap.query.all()
+        return json.dumps([{'model': 'iniciar_consulta.MotivoConsulta', 'pk': ciap.co_ciap, 'fields': {'ciap2': ciap.co_ciap, 'nome': ciap.ds_ciap}} for ciap in ciap_list_all], indent=2)
+    return "<p>Hello, World!</p>"
+
+
+@all_views.route("/prescricoes")
 def prescricoes():
     '''
     Tabelas envolvidas: tb_receita_medicamento, tb_medicamento, tb_forma_farmaceutica
@@ -68,7 +59,8 @@ def prescricoes():
     '''
     return "<p>Hello, World!</p>"
 
-@app.route("/db-test")
+
+@all_views.route("/db-test")
 def db_test():
     cidadaos = Cidadao.query.all()
     for cidadao in cidadaos:
@@ -76,7 +68,3 @@ def db_test():
         print(cidadao.dt_nascimento)
         print(cidadao.nu_telefone_celular or cidadao.nu_telefone_contato)
     return "<p>Hello, World! 2</p>"
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
