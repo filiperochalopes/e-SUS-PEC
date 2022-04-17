@@ -5,9 +5,22 @@ from app.models.IniciarConsulta import Ciap
 all_views = Blueprint('all', __name__,
                       template_folder='templates')
 
+'''
+- Lista de agravos mais atendidos top10
+- Controle hiperdia (controles de glicemia, hba1c e pa)
+- Controle gestantes
+- procedimentos
+- numero de atendimentos
+- media atendimentos/dia
+- qualidade de registro
+
+- Colocando servidor
+- Agendamentos controlados pela internet
+'''
+
 
 @all_views.route("/")
-def hello_world():
+def dashboard():
     '''
     Tabelas envolvidas: tb_medicao
     '''
@@ -15,11 +28,25 @@ def hello_world():
     # grafico com glicemias maiores que 200
     # grafico com pa maiores que 140/90
     # numero de pacientes com diabetes e pressao alta, asma e lista de problemas por ordem de incidencia
+    cidadaos_cadastrados = None
+    cidadaos_atendidos = None
+    # numero de atendimentos ja registrados
+    numero_atendimentos = None
+    # numero de visitas domiciliares
+    numero_visitas_domiciliares = None
+    # numero de dias que houve atendimento
+    dias_atendimento = None
+    # problemas pesquisa o cidada, vê os problemas e coloca em uma lista
+    pacientes_hba1c_maior_que_6 = None
+    pacientes_hba1c_maior_que_7 = None
     return "<p>Hello, World!</p>"
 
 
 @all_views.route("/pacientes")
 def pacientes():
+    '''
+    Aqui aparece um mini prontuário de cada um com a opção de exportação em json para o PIN
+    '''
     # buca por pacientes, mostrnado numero de telefone, numero de consultas, lista de problemas e documentos
     # a intencao aqui eh exportar o prontuario para o pin, comecar por aqui
     return "<p>Hello, World!</p>"

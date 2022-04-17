@@ -1,2 +1,4 @@
 data
 *.jar
+__pycache__
+*.pyc

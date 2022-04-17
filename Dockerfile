@@ -32,10 +32,15 @@ RUN locale -a
 RUN locale-gen "pt_BR.UTF-8"
 RUN update-locale 
 
+RUN echo "Copiando arquivo de instalação $JAR_FILENAME"
+
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
 COPY ./install.sh install.sh
 COPY ./run.sh run.sh
 
+RUN chmod +x /var/www/html/install.sh
+RUN chmod +x /var/www/html/run.sh
+
 EXPOSE 8080
 
-# CMD "chmod +x /var/www/html/run.sh && sh /var/www/html/run.sh && /bin/bash"
+CMD "/var/www/html/run.sh"
