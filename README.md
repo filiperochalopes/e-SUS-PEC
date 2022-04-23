@@ -54,7 +54,8 @@ sudo cp nome_do_arquivo.backup data/backups/
 ```
 5. Crie o banco de dados com base no backup
 ```sh
-sudo cp nome_do_arquivo.backup data/backups/
+docker exec -it esus_psql bash
+pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 ```
 6. Instale o programa
 ```sh

@@ -10,8 +10,8 @@ export COMPOSE_HTTP_TIMEOUT=8000
 echo "Instalando e-SUS-PEC pelo arquivo $filename";
 docker-compose down --volumes --remove-orphans
 sudo chmod -R 755 data
-# docker-compose build --no-cache --build-arg JAR_FILENAME=$filename
-docker-compose build --build-arg JAR_FILENAME=$filename
+docker-compose build --no-cache --build-arg JAR_FILENAME=$filename
+# docker-compose build --build-arg JARS_FILENAME=$filename
 docker-compose up -d
 echo "Avaliando estado de execução container"
 docker-compose ps
