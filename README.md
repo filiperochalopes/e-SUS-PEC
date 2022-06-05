@@ -42,7 +42,7 @@ pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 
 ## Realizando migração de versão <a id='migrando-versao'></a>
 
-Testado e funcionou após migrar a versão de `4.2.6` para `4.5.3`
+Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`
 
 1. Crie um backup do banco de dados e retire da pasta `data`
 ```sh
@@ -65,7 +65,7 @@ sudo cp nome_do_arquivo.backup data/backups/
 5. Crie o banco de dados com base no backup
 ```sh
 docker exec -it esus_psql bash
-pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
+pg_restore -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
 ```
 6. Instale o programa
 ```sh
