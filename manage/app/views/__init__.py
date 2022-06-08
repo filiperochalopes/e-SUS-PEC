@@ -1,6 +1,8 @@
 import json
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from app.models.IniciarConsulta import Ciap
+from app.models.Medicamento import Medicamento, Receita
+from app.serializers import ReceitaSchema
 
 all_views = Blueprint('all', __name__,
                       template_folder='templates')
@@ -48,6 +50,9 @@ def pacientes():
     Aqui aparece um mini prontuário de cada um com a opção de exportação em json para o PIN
     '''
     # buca por pacientes, mostrnado numero de telefone, numero de consultas, lista de problemas e documentos
+    # co_prontuario em tb_medicacao_uso_continuo
+    # tb_medicacao dados objetivos do exame físico glicemia, PA (co_atend_prof)
+    # tb_atend_prof, tb_atend, tb_atend_prof_pre_natal
     # a intencao aqui eh exportar o prontuario para o pin, comecar por aqui
     return "<p>Hello, World!</p>"
 
@@ -63,7 +68,8 @@ def medicamentos():
     '''
     Tabelas envolvidas: tb_medicamento, tb_forma_farmaceutica
     '''
-    Medicamento.query.all()
+    medicamentos = Medicamento.query.all()
+    print(medicamentos)
     return "<p>Hello, World!</p>"
 
 
@@ -84,7 +90,10 @@ def prescricoes():
     Tabelas envolvidas: tb_receita_medicamento, tb_medicamento, tb_forma_farmaceutica
     Retorna: json de prescrições prontas para alimentar
     '''
-    return "<p>Hello, World!</p>"
+    receitas_schema = ReceitaSchema(many=True)
+    receitas = Receita.query.all()
+    print(receitas_schema.dump(receitas))
+    return {"data": receitas_schema.dump(receitas)}
 
 
 @all_views.route("/db-test")

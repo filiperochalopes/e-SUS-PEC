@@ -1,4 +1,4 @@
-from . import db
+from app import db
 from sqlalchemy.orm import relationship
 
 
@@ -6,20 +6,21 @@ class Medicamento(db.Model):
     co_seq_medicamento = db.Column(db.Integer, primary_key=True)
     no_principio_ativo = db.Column(db.Text)
     ds_concentracao = db.Column(db.Text)
-    co_forma_farmaceutica = db.Column(db.Integer)
+    co_forma_farmaceutica = db.Column(db.Integer, db.ForeignKey('tb_forma_farmaceutica.co_forma_farmaceutica'), nullable=False)
     ds_unidade_fornecimento = db.Column(db.Text)
 
     forma_farmaceutica = relationship(
         'FormaFarmaceutica', uselist=False, lazy='selectin', foreign_keys=[co_forma_farmaceutica])
+    receitas = relationship('Receita', back_populates="medicamento")
 
     __tablename__ = "tb_medicamento"
 
     def __repr__(self):
-        return '<Medicamento %s %s>' % self.no_principio_ativo, self.ds_concentracao
+        return f'<Medicamento {self.no_principio_ativo} {self.ds_concentracao}>'
 
 
 class FormaFarmaceutica(db.Model):
-    no_principio_ativo = db.Column(db.Integer, primary_key=True)
+    co_forma_farmaceutica = db.Column(db.Integer, primary_key=True)
     no_forma_farmaceutica = db.Column(db.Text)
     st_ativo = db.Column(db.Boolean)
 
@@ -45,6 +46,8 @@ class Receita(db.Model):
         db.Text, comment='Recomendação/Observação em html')
     ds_frequencia_dose = db.Column(
         db.Text, comment='1,2,3 para uma vez ao dia, duas vezes... manha, tarde, noite ou 6,8,12,24 para 6/6h...')
+    co_medicamento = db.Column(db.Integer, db.ForeignKey('tb_medicamento.co_seq_medicamento'), nullable=False)
+    medicamento = relationship('Medicamento', back_populates="receitas")
 
     __tablename__ = "tb_receita_medicamento"
 
@@ -56,7 +59,7 @@ class UnidadeMedida(db.Model):
     co_unidade_medida = db.Column(db.Integer, primary_key=True)
     no_unidade_medida = db.Column(db.Text)
 
-    __tablename__ = "tb_unidade_medida_tempo"
+    __tablename__ = "tb_unidade_medida"
 
 
 class UnidadeMedidaTempo(db.Model):

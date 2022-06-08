@@ -42,8 +42,8 @@ services:
       - "${APP_PORT}:8080"
     depends_on:
       - psql
-  manage:
-    container_name: esus_manage
+  manager:
+    container_name: esus_manager
     restart: always
     build:
       context: manage
