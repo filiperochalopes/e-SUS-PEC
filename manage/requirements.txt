@@ -2,5 +2,12 @@ psycopg2-binary==2.9.3
 flask==2.0.3
 Flask-SQLAlchemy==2.5.1
 flask-marshmallow==0.14.0
+Flask-Assets==2.0
 marshmallow-sqlalchemy==0.28.0
 ariadne==0.15.1
+plotly==5.8.2
+kaleido==0.2.1
+plotly-geo==1.0.0
+folium==0.12.1
+pandas==1.4.2
+libsass==0.21.0

@@ -1,6 +1,14 @@
-from flask import Blueprint
+from pprint import pp
+from flask import Blueprint, render_template
+
+import json
+import pandas as pd
+import plotly
+import plotly.express as px
+
+from app.models.Atendimento import Problema
 from app.models.Medicamento import Medicamento, Receita
-from app.serializers import ReceitaSchema
+from app.serializers import ProblemaSchema
 
 all_views = Blueprint('all', __name__,
                       template_folder='templates')
@@ -39,7 +47,30 @@ def dashboard():
     # problemas pesquisa o cidada, vê os problemas e coloca em uma lista
     pacientes_hba1c_maior_que_6 = None
     pacientes_hba1c_maior_que_7 = None
-    return "<p>Hello, World!</p>"
+    # Prontuários está em tb_prontuario, cidadãos em tb_cidadao (nu_cns). tb_cid10 será util para descrever os problemas
+    
+    # This dataframe has 244 lines, but 4 distinct values for `day`
+    df = px.data.tips()
+
+
+    problem_schema = ProblemaSchema(many=True)
+    problems = Problema.query.all()
+    problems_marshmallow = problem_schema.dump(problems)
+    problems_reduced = [(p['atendimento_profissional']['atendimento']['co_prontuario'], p['cid10']['nu_cid10'], f"{p['cid10']['nu_cid10']} - {p['cid10']['no_cid10_filtro']}") for p in problems_marshmallow if p['cid10'] is not None and p['atendimento_profissional']['atendimento'] is not None]
+        
+    df = pd.DataFrame(problems_reduced, columns=['Prontuario', 'CID10', 'Problema'])
+    df = df[df['CID10'] != 'Z000']
+    df = df.drop_duplicates(subset=['Prontuario', 'CID10'])
+    n_df = df[['Problema']].value_counts().rename_axis('Problema').reset_index(name='Qtd')
+
+    print(n_df)
+
+    fig = px.pie(n_df[:20], values='Qtd', names='Problema', hole=.2)
+
+    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    # return render_template('index.html')
+    return render_template('index.html', graphJSON=graphJSON)
 
 
 @all_views.route("/pacientes")

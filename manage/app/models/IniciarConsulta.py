@@ -12,10 +12,12 @@ class Ciap(db.Model):
 
 
 class Cid10(db.Model):
-    nu_cid10 = db.Column(db.Integer, primary_key=True)
+    co_cid10 = db.Column(db.Integer, primary_key=True)
+    nu_cid10 = db.Column(db.String)
     no_cid10 = db.Column(db.Text)
+    no_cid10_filtro = db.Column(db.Text)
 
     __tablename__ = "tb_cid10"
 
     def __repr__(self):
-        return '<CID10 %s %s>' % self.nu_cid10, self.no_cid10
+        return f'<CID10 {self.nu_cid10} {self.no_cid10_filtro}>'

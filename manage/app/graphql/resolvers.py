@@ -19,6 +19,13 @@ def fixtures(*_, table=None, model=None):
         return [{'model': model, 'pk': m.co_seq_medicamento, 'fields': json.dumps({'nome': m.no_principio_ativo, 'concentracao': m.ds_concentracao, 'forma_farmaceutica': m.co_forma_farmaceutica, 'unidade_fornecimento': m.ds_unidade_fornecimento})} for m in medicamento_list_all]
     return []
 
+@query.field("records")
+def records(*_, cns=None):
+    '''
+    Aqui deverá ter a identidade `ta_cidadao`, listar problemas do paciente, curva de IMC, Altura, Peso, PA, HGT, HbA1c, Creatinina. Número de atendimentos e resumo dos atendimentos com timeline.
+    '''
+    return {}
+
 @query.field("prescriptions")
 def prescriptions(*_):
     receitas_schema = ReceitaSchema(many=True)

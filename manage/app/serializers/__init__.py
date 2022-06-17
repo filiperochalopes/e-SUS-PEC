@@ -1,6 +1,8 @@
 from pyexpat import model
 from app import ma
 from app.models.Medicamento import Medicamento, Receita, ViaAdministracao, FormaFarmaceutica, UnidadeMedidaTempo, TipoFrequencia
+from app.models.Atendimento import Atendimento, AtendimentoProfissional, Problema
+from app.models.IniciarConsulta import Cid10
 from marshmallow_sqlalchemy import fields
 
 
@@ -44,3 +46,30 @@ class ReceitaSchema(ma.SQLAlchemyAutoSchema):
     tempo_tratamento = fields.Nested(UnidadeMedidaTempoSchema)
     frequencia_dose_tempo = fields.Nested(UnidadeMedidaTempoSchema)
     tipo_frequencia_dose = fields.Nested(TipoFrequenciaSchema)
+
+
+class Cid10Schema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Cid10
+
+
+class AtendimentoSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Atendimento
+
+
+class AtendimentoProfissionalSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = AtendimentoProfissional
+        include_relationships = True
+
+    atendimento = fields.Nested(AtendimentoSchema)
+
+
+class ProblemaSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Problema
+        include_relationships = True
+
+    atendimento_profissional = fields.Nested(AtendimentoProfissionalSchema)
+    cid10 = fields.Nested(Cid10Schema)
