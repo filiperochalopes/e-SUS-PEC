@@ -1,0 +1,16 @@
+type Query {
+  places: [Place]
+  fixtures(model: String!): [Fixture!]
+}
+
+type Place {
+  name: String!
+  description: String!
+  country: String!
+}
+
+type Fixture {
+  fk: String
+  model: String
+  fields: String
+}

@@ -1,6 +1,4 @@
-import json
-from flask import Blueprint, jsonify
-from app.models.IniciarConsulta import Ciap
+from flask import Blueprint
 from app.models.Medicamento import Medicamento, Receita
 from app.serializers import ReceitaSchema
 
@@ -61,39 +59,6 @@ def pacientes():
 def exames():
     Procedimento.query.all()
     return "<p>Hello, World!</p>"
-
-
-@all_views.route("/medicamentos")
-def medicamentos():
-    '''
-    Tabelas envolvidas: tb_medicamento, tb_forma_farmaceutica
-    '''
-    medicamentos = Medicamento.query.all()
-    print(medicamentos)
-    return "<p>Hello, World!</p>"
-
-
-@all_views.route("/fixtures/<table>")
-def fixtures(table: str = 'procedimentos'):
-    '''
-    Captura a lista em formato de fixtures
-    '''
-    if table == 'motivo_consulta':
-        ciap_list_all = Ciap.query.all()
-        return json.dumps([{'model': 'iniciar_consulta.MotivoConsulta', 'pk': ciap.co_ciap, 'fields': {'ciap2': ciap.co_ciap, 'nome': ciap.ds_ciap}} for ciap in ciap_list_all], indent=2)
-    return "<p>Hello, World!</p>"
-
-
-@all_views.route("/prescricoes")
-def prescricoes():
-    '''
-    Tabelas envolvidas: tb_receita_medicamento, tb_medicamento, tb_forma_farmaceutica
-    Retorna: json de prescrições prontas para alimentar
-    '''
-    receitas_schema = ReceitaSchema(many=True)
-    receitas = Receita.query.all()
-    print(receitas_schema.dump(receitas))
-    return {"data": receitas_schema.dump(receitas)}
 
 
 @all_views.route("/db-test")

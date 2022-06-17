@@ -2,7 +2,7 @@ from app import db
 
 
 class Ciap(db.Model):
-    co_ciap = db.Column(db.Integer, primary_key=True)
+    co_ciap = db.Column(db.String, primary_key=True)
     ds_ciap = db.Column(db.Text)
 
     __tablename__ = "tb_ciap"

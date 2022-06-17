@@ -3,3 +3,4 @@ flask==2.0.3
 Flask-SQLAlchemy==2.5.1
 flask-marshmallow==0.14.0
 marshmallow-sqlalchemy==0.28.0
+ariadne==0.15.1
