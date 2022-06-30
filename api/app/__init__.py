@@ -24,12 +24,12 @@ def not_found(error):
     return render_template('404.html'), 404
 
 from .views import all_views
-app.register_blueprint(all_views)
+app.register_blueprint(all_views, url_prefix="/api/v1")
 
 from .graphql import query, type_defs, resolvers
 schema = make_executable_schema(type_defs, query)
 
-@app.route("/graphql", methods=["GET"])
+@app.route("/api/v1/graphql", methods=["GET"])
 def graphql_playground():
     '''
     Create a GraphQL Playground UI for the GraphQL schema
@@ -43,15 +43,13 @@ def graphql_playground():
 # Create a GraphQL endpoint for executing GraphQL queries
 
 
-@app.route("/graphql", methods=["POST"])
+@app.route("/api/v1/graphql", methods=["POST"])
 def graphql_server():
     data = request.get_json()
     success, result = graphql_sync(
         schema, data, context_value={"request": request})
     status_code = 200 if success else 400
     return jsonify(result), status_code
-
-# Create executable schema
 
 # Later on you'll import the other blueprints the same way:
 #from app.comments.views import mod as commentsModule

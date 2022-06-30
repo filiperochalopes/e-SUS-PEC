@@ -1,0 +1,19 @@
+{% extends 'base.html' %} {% block header %}
+<h1>{% block title %}Register{% endblock %}</h1>
+{% endblock %} {% block content %}
+<section class="graph-zone">
+  <header>
+    <h3>TOP 20 de Problema de Pacientes</h3>
+    <p>
+      Lista dos 20 maiores problemas que são cadastrados em pacientes atendidos
+      na unidade
+    </p>
+  </header>
+  <div id="chart"></div>
+</section>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="text/javascript">
+  var graphs = {{graphJSON | safe}};
+  Plotly.plot('chart', graphs,{});
+</script>
+{% endblock %}

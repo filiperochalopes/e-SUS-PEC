@@ -1,0 +1,14 @@
+FROM node:16.15.1-alpine3.16
+
+RUN mkdir -p /home/node/app
+WORKDIR /home/node/app
+
+COPY . .
+COPY package.json .
+COPY .env .env
+
+ENV CHOKIDAR_USEPOLLING=true
+
+EXPOSE 3000
+
+ENTRYPOINT ["yarn", "start"]

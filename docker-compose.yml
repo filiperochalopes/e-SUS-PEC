@@ -28,7 +28,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args: 
+      args:
         - POSTGRES_DATABASE=${POSTGRES_DB}
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -42,19 +42,49 @@ services:
       - "${APP_PORT}:8080"
     depends_on:
       - psql
-  manager:
-    container_name: esus_manager
+  api:
+    container_name: esus_api
     restart: always
     build:
-      context: manage
+      context: api
       dockerfile: Dockerfile
     volumes:
-      - ./manage:/app
-      - ./manage/nginx.conf:/etc/nginx/sites-enabled/default
+      - ./api:/app
+      - ./api/nginx.conf:/etc/nginx/sites-enabled/default
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
     stdin_open: true
     ports:
-      - "${MANAGE_PORT}:5000"
+      - "${API_PORT}:5000"
     depends_on:
       - psql
+  dashboard:
+    container_name: esus_dashboard
+    restart: always
+    build:
+      context: dashboard
+      dockerfile: Dockerfile
+    environment:
+      - REACT_APP_API_URL=${API_URL}
+    stdin_open: true
+    ports:
+      - "${DASHBOARD_PORT}:80"
+    depends_on:
+      - api
+  dashboard_dev:
+    container_name: esus_dashboard__dev
+    restart: always
+    build:
+      context: dashboard
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./dashboard:/home/node/app
+      - ./dashboard/node_modules:/home/node/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=${API_URL}
+    stdin_open: true
+    ports:
+      - "${DASHBOARD_DEV_PORT}:3000"
+    depends_on:
+      - api

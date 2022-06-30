@@ -1,0 +1,39 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: #f0f0f5;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 300;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+}
+
+p {
+  font-weight: 300;
+}
+
+body > header {
+  background-color: #071d41;
+}
+
+main {
+  background-color: #fff;
+  max-width: 912px;
+  margin: 0 auto;
+  padding: 16px 8px;
+  box-sizing: border-box;
+}
+
+section.graph-zone {
+  header {
+    padding: 0 16px;
+  }
+}

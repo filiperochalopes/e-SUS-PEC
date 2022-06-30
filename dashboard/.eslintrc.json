@@ -1,0 +1,102 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "jest": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:jsx-a11y/recommended",
+    "react-app",
+    "prettier/react",
+    "prettier"
+  ],
+  "globals": {
+    "Atomics": "readonly",
+    "SharedArrayBuffer": "readonly"
+  },
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true,
+      "modules": true
+    },
+    "ecmaVersion": 6,
+    "sourceType": "module"
+  },
+  "parser": "babel-eslint",
+  "plugins": ["react-hooks", "react", "prettier", "jsx-a11y"],
+  "rules": {
+    "semi": "off",
+    "no-console": ["error", { "allow": ["log", "warn", "error"] }],
+    "arrow-parens": ["error", "always"],
+    "no-underscore-dangle": ["warn", { "allow": [] }],
+    "quotes": ["error", "double", { "avoidEscape": true }],
+    "prettier/prettier": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/jsx-filename-extension": [
+      "error",
+      { "extensions": [".js", ".jsx"] }
+    ],
+    "react/forbid-prop-types": [0, { "forbid": ["any"] }],
+    "react/prop-types": 0,
+    "react/jsx-uses-react": "error",
+    "react/display-name": 0,
+    "import/prefer-default-export": "off",
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin",
+          "index",
+          "sibling",
+          "parent",
+          "internal",
+          "external",
+          "unknown"
+        ],
+        "pathGroups": [
+          {
+            "pattern": "react",
+            "group": "index"
+          },
+          {
+            "pattern": "./styles",
+            "group": "index"
+          },
+          {
+            "pattern": "**/views/**",
+            "group": "internal"
+          },
+          {
+            "pattern": "**/components/**",
+            "group": "sibling",
+            "position": "after"
+          },
+          {
+            "pattern": "**/services/**",
+            "group": "sibling",
+            "position": "before"
+          }
+        ],
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        },
+        "newlines-between": "always"
+      }
+    ],
+    "no-unused-expressions": ["error", { "allowTaggedTemplates": true }]
+  },
+  "settings": {
+    "react": {
+      "pragma": "React"
+    },
+    "import/resolver": {
+      "node": {
+        "paths": ["src"]
+      }
+    }
+  }
+}
