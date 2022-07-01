@@ -15,7 +15,7 @@ function App() {
     <AppContext.Provider value={{ signed, setSigned }}>
       <ThemeProvider theme={theme}>
         <GlobalStyles />
-        <Router>
+        <Router basename="/dashboard">
           <Routes />
         </Router>
       </ThemeProvider>
