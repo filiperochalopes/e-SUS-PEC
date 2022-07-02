@@ -1,0 +1,63 @@
+version: "3"
+services:
+  psql:
+    container_name: esus_psql
+    restart: always
+    image: postgres:13.5
+    volumes:
+      - ./data/psql_db:/var/lib/postgresql/data
+      - ./data/backups:/home
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRESQL_PORT}:5432"
+  app:
+    container_name: esus_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - POSTGRES_DATABASE=${POSTGRES_DB}
+        - POSTGRES_USERNAME=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./install.sh:/var/www/html/install.sh
+      - ./run.sh:/var/www/html/run.sh
+      - ./data/e-SUS:/opt/e-SUS
+    ports:
+      - "${APP_PORT}:8080"
+    depends_on:
+      - psql
+  api:
+    container_name: esus_api
+    restart: always
+    build:
+      context: api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/app
+      - ./api/nginx.conf:/etc/nginx/sites-enabled/default
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
+    stdin_open: true
+    ports:
+      - "${API_PORT}:5000"
+    depends_on:
+      - psql
+  dashboard:
+    container_name: esus_dashboard
+    restart: always
+    build:
+      context: dashboard
+      dockerfile: Dockerfile
+    environment:
+      - REACT_APP_API_URL=${API_URL}
+    stdin_open: true
+    ports:
+      - "${DASHBOARD_PORT}:80"
+    depends_on:
+      - api
