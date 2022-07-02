@@ -5,6 +5,10 @@ WORKDIR /home/node/app
 COPY . .
 COPY package.json .
 COPY .env .env
+
+ARG PUBLIC_URL
+ENV PUBLIC_URL=${PUBLIC_URL}
+
 RUN yarn 
 RUN yarn build
 

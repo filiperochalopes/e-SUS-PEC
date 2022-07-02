@@ -29,7 +29,7 @@ app.register_blueprint(all_views, url_prefix="/api/v1")
 from .graphql import query, type_defs, resolvers
 schema = make_executable_schema(type_defs, query)
 
-@app.route("/api/v1/playground", methods=["GET"])
+@app.route("/api/v1/graphql", methods=["GET"])
 def graphql_playground():
     '''
     Create a GraphQL Playground UI for the GraphQL schema

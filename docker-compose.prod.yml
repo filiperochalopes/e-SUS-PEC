@@ -54,6 +54,8 @@ services:
     build:
       context: dashboard
       dockerfile: Dockerfile
+      args:
+        - PUBLIC_URL=${PUBLIC_URL}
     environment:
       - REACT_APP_API_URL=${API_URL}
     stdin_open: true
