@@ -4,7 +4,7 @@
 
 ## Preparando pacotes
 
-Tenha o [`docker`](https://docs.docker.com/engine/install/) e [`docker-compose`](https://docs.docker.com/compose/install/) instalado na máquina 
+Tenha o [`docker`](https://docs.docker.com/engine/install/) e [`docker-compose`](https://docs.docker.com/compose/install/) instalado na máquina
 
 ## Instalando serviço
 
@@ -23,7 +23,7 @@ Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser �
 # Em linux
 make run
 # Depois de rodar novamente os containers
-docker-compose up -d 
+docker-compose up -d
 # Caso nenhum dos anteriores funcione execute diretamente o executável do sistema pec
 docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
 ```
@@ -45,29 +45,40 @@ pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`
 
 1. Crie um backup do banco de dados e retire da pasta `data`
+
 ```sh
 docker exec -it esus_psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
 sudo cp data/backups/nome_do_arquivo.backup .
 ```
+
 2. Exclua todo o banco de dados e dados relacionados em volume
+
 ```sh
 docker-compose down --remove-orphans --volumes
 sudo rm -rf data
 ```
+
 3. Crie o banco de dados
+
 ```sh
 docker-compose up -d psql
 ```
+
 4. Copie o arquivo de backup
+
 ```sh
 sudo cp nome_do_arquivo.backup data/backups/
 ```
+
 5. Crie o banco de dados com base no backup
+
 ```sh
 docker exec -it esus_psql bash
 pg_restore -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
 ```
+
 6. Instale o programa
+
 ```sh
 sh build.sh -f eSUS-AB-PEC-4.5.5-Linux64.jar
 ```
@@ -76,3 +87,4 @@ sh build.sh -f eSUS-AB-PEC-4.5.5-Linux64.jar
 
 - Testes realizados com versão `4.2.7` e `4.2.8` não foram bem sucedidos
 - A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"
+- Verificar sempre a memória caso queira fazer depois em servidor. Senão ele trará no console um `Killed` inesperado https://stackoverflow.com/questions/37071106/spring-boot-application-quits-unexpectedly-with-killed
