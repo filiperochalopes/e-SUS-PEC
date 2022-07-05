@@ -8,7 +8,7 @@ type_defs = gql(
     """
    type Query {
        places: [Place]
-       "Resolver para servir de fixture para models de outra aplicação Django. `model` é a string que deve aparecer no campo model, `table` no momento deve ser um dos: `[ciap, medicamento]`. Atenção, o campo `fields` está como **String**"
+       "Resolver para servir de fixture para models de outra aplicação Django. `model` é a string que deve aparecer no campo model, `table` no momento deve ser um dos: `[ciap, cid10 , procedimento, vias, exame, medicamento]`. Atenção, o campo `fields` está como **String**"
        fixtures(model:String!, table:String!): [Fixture!]
        prescriptions: [String]
        records(cns:String): [MedicalRecord]

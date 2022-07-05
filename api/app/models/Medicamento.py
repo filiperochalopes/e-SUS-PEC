@@ -20,6 +20,11 @@ class Medicamento(db.Model):
     def __repr__(self):
         return f'<Medicamento {self.no_principio_ativo} {self.ds_concentracao}>'
 
+class TipoReceita(db.Model):
+    co_tipo_receita = db.Column(db.Integer, primary_key=True)
+    no_tipo_receita = db.Column(db.Text)
+
+    __tablename__ = "tb_tipo_receita"
 
 class FormaFarmaceutica(db.Model):
     co_forma_farmaceutica = db.Column(db.Integer, primary_key=True)
@@ -70,6 +75,9 @@ class Receita(db.Model):
     qt_periodo_frequencia = db.Column(db.Integer,nullable=True, comment='Quantidade da frequência "a durante >> 1 << Mês" ')
     tp_un_medida_tempo_frequencia = db.Column(db.Integer, db.ForeignKey(
         'tb_unidade_medida_tempo.co_unidade_medida_tempo'), nullable=True, comment='Tipo da unidade de medida do tempo da frequencia "Durante 1 >> Mês <<')
+    
+    tp_receita = db.Column(db.Integer, db.ForeignKey(
+        'tb_tipo_receita.co_tipo_receita'), nullable=True, comment='Tipo da unidade de medida do tempo da frequencia "Durante 1 >> Mês <<')
         
     st_uso_continuo = db.Column(db.Boolean)
     st_dose_unica = db.Column(db.Boolean)
@@ -96,6 +104,8 @@ class Receita(db.Model):
         'UnidadeMedidaTempo', uselist=False, lazy='selectin', foreign_keys=[tp_un_medida_tempo_tratamento])
     via_administracao = relationship(
         'ViaAdministracao', uselist=False, lazy='selectin', foreign_keys=[co_aplicacao_medicamento])
+    tipo_receita = relationship(
+        'TipoReceita', uselist=False, lazy='selectin', foreign_keys=[tp_receita])
     medicamento = relationship('Medicamento', back_populates="receitas")
 
     __tablename__ = "tb_receita_medicamento"

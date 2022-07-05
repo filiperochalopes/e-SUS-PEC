@@ -4,20 +4,36 @@ from . import query
 import random
 
 from app.serializers import ReceitaSchema
-from app.models.IniciarConsulta import Ciap
-from app.models.Medicamento import Medicamento, Receita
+from app.models.IniciarConsulta import Ciap, Cid10, Procedimento
+from app.models.Medicamento import Medicamento, Receita, ViaAdministracao
 
 random_instance = random.Random(500)
+
 
 @query.field("fixtures")
 def fixtures(*_, table=None, model=None):
     if table == 'ciap':
         ciap_list_all = Ciap.query.all()
-        return [{'model': model, 'pk': ciap.co_ciap, 'fields': json.dumps({'ciap2': ciap.co_ciap, 'nome': ciap.ds_ciap})} for ciap in ciap_list_all]
+        return [{'model': model, 'pk': ciap.co_ciap, 'fields': json.dumps({'code': ciap.co_ciap, 'name': ciap.ds_ciap })} for ciap in ciap_list_all]
+    elif table == 'cid10':
+        cid10_list_all = Cid10.query.all()
+        return [{'model': model, 'pk': cid10.co_cid10, 'fields': json.dumps({'code': cid10.co_cid10, 'name': cid10.no_cid10 })} for cid10 in cid10_list_all]
+    elif table == 'procedimento':
+        procedimento_list_all = Procedimento.query.filter(
+            Procedimento.tp_proced == 'CLINICO').filter(Procedimento.st_ativo == 1).all()
+        return [{'model': model, 'pk': proced.co_proced, 'fields': json.dumps({'code': proced.co_proced, 'name': proced.no_proced })} for proced in procedimento_list_all]
+    elif table == 'vias':
+        vias_list_all = ViaAdministracao.query.all()
+        return [{'model': model, 'pk': via_administracao.co_aplicacao_medicamento, 'fields': json.dumps({'code': via_administracao.co_aplicacao_medicamento, 'name': via_administracao.no_aplicacao_med_filtro, 'note': None })} for via_administracao in vias_list_all]
+    elif table == 'exame':
+        exame_list_all = Procedimento.query.filter(Procedimento.tp_proced == 'CLINICO').filter(
+            Procedimento.st_ativo == 1).filter(Procedimento.st_exame == 1).all()
+        return [{'model': model, 'pk': exame.co_proced, 'fields': json.dumps({'code': exame.co_proced, 'name': exame.no_proced, 'note': None })} for exame in exame_list_all]
     elif table == 'medicamento':
         medicamento_list_all = Medicamento.query.all()
-        return [{'model': model, 'pk': m.co_seq_medicamento, 'fields': json.dumps({'nome': m.no_principio_ativo, 'concentracao': m.ds_concentracao, 'forma_farmaceutica': m.co_forma_farmaceutica, 'unidade_fornecimento': m.ds_unidade_fornecimento})} for m in medicamento_list_all]
+        return [{'model': model, 'pk': m.co_seq_medicamento, 'fields': json.dumps({'active_principle': m.no_principio_ativo, 'concentration': m.ds_concentracao, 'pharmaceutical_form': m.co_forma_farmaceutica, 'supply_unit': m.ds_unidade_fornecimento, 'recipe_type': None, 'route_id': None, })} for m in medicamento_list_all]
     return []
+
 
 @query.field("records")
 def records(*_, cns=None):
@@ -25,6 +41,7 @@ def records(*_, cns=None):
     Aqui deverá ter a identidade `ta_cidadao`, listar problemas do paciente, curva de IMC, Altura, Peso, PA, HGT, HbA1c, Creatinina. Número de atendimentos e resumo dos atendimentos com timeline.
     '''
     return {}
+
 
 @query.field("prescriptions")
 def prescriptions(*_):
@@ -49,6 +66,8 @@ def prescriptions(*_):
             'oftalmica': ['aplicar, por via oftalmica', 'pingar no olho acometido, ', 'pingar nos olhos,'],
             'local': ['tópico', 'ação local,', 'na pele,'],
             'inalatoria por via oral': ['inalar, por via oral,', 'Aspirar, por via oral', 'inalação por via oral,'],
+            'inalatoria por via nasal': ['inalar, por via nasal,', 'Aspirar pelo nariz', 'inalação por via nasal,'],
+            'uretral': ['Via uretral,', 'Aplicar pela uretra'],
             'otologica': ['pingar nos ouvidos,', 'Pingar no ouvido acometido', 'pingar no ouvido doente,'],
             'retal': ['aplicar, por via retal,', 'inserir por via anal/retal,'],
             'nasal': ['pingar no nariz', 'em cada narina'],
@@ -79,7 +98,8 @@ def prescriptions(*_):
             dose_frequence = f"de {r['ds_frequencia_dose']}/{r['ds_frequencia_dose']}h"
         # Verifica se é contínuo ou tem número de dias
         if r['st_uso_continuo'] == True:
-            dose_duration = random_instance.choice(['- contínuo', '- uso contínuo', '. uso contínuo'])
+            dose_duration = random_instance.choice(
+                ['- contínuo', '- uso contínuo', '. uso contínuo'])
         elif r['st_dose_unica'] == True:
             dose_duration = 'dose única'
         elif r['tempo_tratamento']['no_unidade_medida_tempo'].lower() != 'indeterminado':
@@ -88,7 +108,7 @@ def prescriptions(*_):
             dose_duration = ''
 
         recommendations = r['ds_recomendacao'] or ''
-        prescriptions.append(f"{drug}. {random_instance.choice(verbs[route])} {dose} {dose_frequence} {dose_duration}. {recommendations}")
+        prescriptions.append(
+            f"{drug}. {random_instance.choice(verbs[route])} {dose} {dose_frequence} {dose_duration}. {recommendations}")
 
     return prescriptions
-    
