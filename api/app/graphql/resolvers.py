@@ -5,7 +5,7 @@ import random
 
 from app.serializers import ReceitaSchema
 from app.models.IniciarConsulta import Ciap, Cid10, Procedimento
-from app.models.Medicamento import Medicamento, Receita, ViaAdministracao
+from app.models.Medicamento import Medicamento, MedicamentoPrincipioAtivo, Receita, ViaAdministracao
 
 random_instance = random.Random(500)
 
@@ -30,8 +30,8 @@ def fixtures(*_, table=None, model=None):
             Procedimento.st_ativo == 1).filter(Procedimento.st_exame == 1).all()
         return [{'model': model, 'pk': exame.co_proced, 'fields': json.dumps({'code': exame.co_proced, 'name': exame.no_proced, 'note': None })} for exame in exame_list_all]
     elif table == 'medicamento':
-        medicamento_list_all = Medicamento.query.all()
-        return [{'model': model, 'pk': m.co_seq_medicamento, 'fields': json.dumps({'active_principle': m.no_principio_ativo, 'concentration': m.ds_concentracao, 'pharmaceutical_form': m.co_forma_farmaceutica, 'supply_unit': m.ds_unidade_fornecimento, 'recipe_type': None, 'route_id': None, })} for m in medicamento_list_all]
+        medicamento_list_all = MedicamentoPrincipioAtivo.query.all()
+        return [{'model': model, 'pk': m.medicamento.co_seq_medicamento, 'fields': json.dumps({'active_principle': m.medicamento.no_principio_ativo, 'concentration': m.medicamento.ds_concentracao, 'pharmaceutical_form': m.medicamento.co_forma_farmaceutica, 'supply_unit': m.medicamento.ds_unidade_fornecimento, 'recipe_type': m.principio_ativo.lista_medicamento.tipo_receita.no_tipo_receita, 'route_id': None, })} for m in medicamento_list_all]
     return []
 
 

@@ -2,6 +2,36 @@ from app import db
 from sqlalchemy.orm import relationship
 
 
+class MedicamentoPrincipioAtivo(db.Model):
+    '''
+    Tabela de Relacionamento entre o medicamento e princípio ativo
+    '''
+    co_medicamento_catmat = db.Column(db.Integer, primary_key=True)
+    co_principio_ativo = db.Column(db.Integer, db.ForeignKey(
+        'tb_principio_ativo.co_principio_ativo'), nullable=False)
+    co_medicamento = db.Column(db.Integer, db.ForeignKey(
+        'tb_medicamento.co_seq_medicamento'), nullable=False)
+
+    principio_ativo = relationship(
+        'PrincipioAtivo', uselist=False, lazy='selectin', foreign_keys=[co_principio_ativo])
+    medicamento = relationship(
+        'Medicamento', uselist=False, lazy='selectin', foreign_keys=[co_medicamento])
+
+    __tablename__ = "tb_medicamento_catmat"
+
+
+class PrincipioAtivo(db.Model):
+    co_principio_ativo = db.Column(db.Integer, primary_key=True)
+    no_principio_ativo = db.Column(db.Text)
+    co_lista_medicamento = db.Column(db.Integer, db.ForeignKey(
+        'tb_lista_medicamento.co_lista_medicamento'), nullable=False)
+
+    lista_medicamento = relationship(
+        'ListaMedicamento', uselist=False, lazy='selectin', foreign_keys=[co_lista_medicamento])
+
+    __tablename__ = "tb_principio_ativo"
+
+
 class Medicamento(db.Model):
     co_seq_medicamento = db.Column(db.Integer, primary_key=True)
     no_principio_ativo = db.Column(db.Text)
@@ -9,7 +39,7 @@ class Medicamento(db.Model):
     co_forma_farmaceutica = db.Column(db.Integer, db.ForeignKey(
         'tb_forma_farmaceutica.co_forma_farmaceutica'), nullable=False)
     ds_unidade_fornecimento = db.Column(db.Text)
-    
+
     forma_farmaceutica = relationship(
         'FormaFarmaceutica', uselist=False, lazy='selectin', foreign_keys=[co_forma_farmaceutica])
 
@@ -20,11 +50,30 @@ class Medicamento(db.Model):
     def __repr__(self):
         return f'<Medicamento {self.no_principio_ativo} {self.ds_concentracao}>'
 
+
 class TipoReceita(db.Model):
     co_tipo_receita = db.Column(db.Integer, primary_key=True)
     no_tipo_receita = db.Column(db.Text)
 
     __tablename__ = "tb_tipo_receita"
+
+
+class ListaMedicamento(db.Model):
+    '''
+    Trata-se de uma tabela que contem a lista de medicações em 
+    sua classficação quanto a A1 - Entorpecentes a C3 - Imunosupressores
+    14 - Comuns, 13 - Antimicrobianos
+    '''
+    co_lista_medicamento = db.Column(db.Integer, primary_key=True)
+    no_lista_medicamento = db.Column(db.Text)
+    tp_receita = db.Column(db.Integer, db.ForeignKey(
+        'tb_tipo_receita.co_tipo_receita'), nullable=True, comment='Tipo da receita em relação a forma que deve ser impressa e número de cópias')
+
+    tipo_receita = relationship(
+        'TipoReceita', uselist=False, lazy='selectin', foreign_keys=[tp_receita])
+
+    __tablename__ = "tb_lista_medicamento"
+
 
 class FormaFarmaceutica(db.Model):
     co_forma_farmaceutica = db.Column(db.Integer, primary_key=True)
@@ -67,18 +116,20 @@ class Receita(db.Model):
 
     qt_receitada = db.Column(
         db.Text, comment='Quantidade de comprimidos ou frascos receitados')
-    
-    qt_duracao_tratamento = db.Column(db.Integer,nullable=True, comment='Quantidade de duração do tratamento')
+
+    qt_duracao_tratamento = db.Column(
+        db.Integer, nullable=True, comment='Quantidade de duração do tratamento')
     tp_un_medida_tempo_tratamento = db.Column(db.Integer, db.ForeignKey(
-        'tb_unidade_medida_tempo.co_unidade_medida_tempo'),nullable=True, comment='Tipo da unidade de medida do tempo do tratamento')
-    
-    qt_periodo_frequencia = db.Column(db.Integer,nullable=True, comment='Quantidade da frequência "a durante >> 1 << Mês" ')
+        'tb_unidade_medida_tempo.co_unidade_medida_tempo'), nullable=True, comment='Tipo da unidade de medida do tempo do tratamento')
+
+    qt_periodo_frequencia = db.Column(
+        db.Integer, nullable=True, comment='Quantidade da frequência "a durante >> 1 << Mês" ')
     tp_un_medida_tempo_frequencia = db.Column(db.Integer, db.ForeignKey(
         'tb_unidade_medida_tempo.co_unidade_medida_tempo'), nullable=True, comment='Tipo da unidade de medida do tempo da frequencia "Durante 1 >> Mês <<')
-    
+
     tp_receita = db.Column(db.Integer, db.ForeignKey(
-        'tb_tipo_receita.co_tipo_receita'), nullable=True, comment='Tipo da unidade de medida do tempo da frequencia "Durante 1 >> Mês <<')
-        
+        'tb_tipo_receita.co_tipo_receita'), nullable=True, comment='Tipo da receita em relação a forma que deve ser impressa e número de cópias')
+
     st_uso_continuo = db.Column(db.Boolean)
     st_dose_unica = db.Column(db.Boolean)
 
