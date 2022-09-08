@@ -17,7 +17,7 @@ def fixtures(*_, table=None, model=None):
         return [{'model': model, 'pk': ciap.co_ciap, 'fields': json.dumps({'code': ciap.co_ciap, 'name': ciap.ds_ciap })} for ciap in ciap_list_all]
     elif table == 'cid10':
         cid10_list_all = Cid10.query.all()
-        return [{'model': model, 'pk': cid10.co_cid10, 'fields': json.dumps({'code': cid10.co_cid10, 'name': cid10.no_cid10 })} for cid10 in cid10_list_all]
+        return [{'model': model, 'pk': cid10.co_cid10, 'fields': json.dumps({'code': cid10.nu_cid10, 'name': cid10.no_cid10 })} for cid10 in cid10_list_all]
     elif table == 'procedimento':
         procedimento_list_all = Procedimento.query.filter(
             Procedimento.tp_proced == 'CLINICO').filter(Procedimento.st_ativo == 1).all()
