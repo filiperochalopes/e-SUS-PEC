@@ -13,6 +13,16 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "${POSTGRESQL_PORT}:5432"
+  pgweb:
+    container_name: esus_pgweb
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - "${PGWEB_PORT}:8081"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      - psql
   app:
     container_name: esus_app
     build:

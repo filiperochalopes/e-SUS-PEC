@@ -1,2 +1,6 @@
 data
 *.jar
+__pycache__
+*.pyc
+*.backup
+.webassets-cache
