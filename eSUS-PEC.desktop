@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=eSUS-PEC
-Terminal=True
-Exec=/usr/bin/eSUS-PEC.sh
-Icon=/usr/share/icons/eSUS-PEC.ico
