@@ -9,7 +9,7 @@ prod-update:
 dev-run:
 	docker-compose -f docker-compose.dev.yml down --remove-orphans --volumes
 	sudo chmod -R 777 data
-	docker-compose up -d
+	docker-compose -f docker-compose.dev.yml up -d
 dev-down:
 	docker-compose -f docker-compose.dev.yml down --remove-orphans --volumes
 dev-logs:
