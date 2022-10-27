@@ -13,6 +13,16 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "${POSTGRESQL_PORT}:5432"
+  pgweb:
+    container_name: esus_pgweb
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - "${PGWEB_PORT}:8081"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      - psql
   app:
     container_name: esus_app
     build:
@@ -22,6 +32,7 @@ services:
         - POSTGRES_DATABASE=${POSTGRES_DB}
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - TIMEZONE=${TIMEZONE}
     stdin_open: true
     tty: true
     volumes:
@@ -32,34 +43,3 @@ services:
       - "${APP_PORT}:8080"
     depends_on:
       - psql
-  api:
-    container_name: esus_api
-    restart: always
-    build:
-      context: api
-      dockerfile: Dockerfile
-    volumes:
-      - ./api:/app
-      - ./api/nginx.conf:/etc/nginx/sites-enabled/default
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}?sslmode=disable
-    stdin_open: true
-    ports:
-      - "${API_PORT}:5000"
-    depends_on:
-      - psql
-  dashboard:
-    container_name: esus_dashboard
-    restart: always
-    build:
-      context: dashboard
-      dockerfile: Dockerfile
-      args:
-        - PUBLIC_URL=${PUBLIC_URL}
-    environment:
-      - REACT_APP_API_URL=${API_URL}
-    stdin_open: true
-    ports:
-      - "${DASHBOARD_PORT}:80"
-    depends_on:
-      - api

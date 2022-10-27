@@ -1,5 +1,15 @@
 #!/bin/sh
 
+echo "Inicializando configuração de data e hora..."
+ntpd -gq
+service ntp start
+
+echo "Ajustando data para $TIMEZONE ..."
+echo $TIMEZONE > /etc/timezone && \
+ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime && \
+dpkg-reconfigure -f noninteractive tzdata
+
+echo "Inicializando sistema..."
 FILE=/opt/e-SUS/webserver/standalone.sh
 
 if test -f "$FILE"; then
@@ -12,9 +22,9 @@ if test -f "$FILE"; then
         nohup /opt/e-SUS/webserver/standalone.sh & tail -f nohup.out
     fi
 else
-    echo "$FILE não existe, execute manualmente o sistema com \
-    sh /opt/e-SUS/webserver/standalone.sh \
-    ou instale o sitema primeiro, caso seja a primeira vez instalando:
+    printf "$FILE não existe, execute manualmente o sistema com\n \
+    sh /opt/e-SUS/webserver/standalone.sh\n\n \
+    ou instale o sitema primeiro, caso seja a primeira vez instalando:\n\n
     sh /install.sh"
 fi
 

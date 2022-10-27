@@ -11,8 +11,8 @@ Tenha o [`docker`](https://docs.docker.com/engine/install/) e [`docker-compose`]
 Para instalação foi criado um script que posse ser executado copiando o bloco abaixo, se você estiver migrando de versão [leia o parágrafo abaixo](#migrando-versao)
 
 ```sh
-# Substitua eSUS-AB-PEC-4.5.5-Linux64.jar pelo pacote que você baixou no site https://sisaps.saude.gov.br/esus/
-sh build.sh -f eSUS-AB-PEC-4.5.5-Linux64.jar
+# Substitua eSUS-AB-PEC-5.0.8-Linux64.jar pelo pacote que você baixou no site https://sisaps.saude.gov.br/esus/
+sh build.sh -f eSUS-AB-PEC-5.0.8-Linux64.jar
 ```
 
 ## Executando o serviço
@@ -79,8 +79,10 @@ pg_restore -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
 
 6. Instale o programa
 
+Fora do container, na pasta raiz do projeto execute, substituindo o nome do pacote `eSUS-AB-PEC-5.0.8-Linux64.jar` para a versão que você vai instalar em sua máquina.
+
 ```sh
-sh build.sh -f eSUS-AB-PEC-4.5.5-Linux64.jar
+sh build.sh -f eSUS-AB-PEC-5.0.8-Linux64.jar
 ```
 
 ## Known Issues (Bugs Conhecidos)
