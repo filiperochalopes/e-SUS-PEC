@@ -1,6 +1,9 @@
 # eSUS PEC
 
-É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização.
+Compatível e testado com  
+![version](https://img.shields.io/badge/version-5.0.12-blue) ![version](https://img.shields.io/badge/version-5.0.8-blue) ![version](https://img.shields.io/badge/version-4.5.5-blue) ![version](https://img.shields.io/badge/version-4.2.6-blue)
+
+É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
 ## Preparando pacotes
 
