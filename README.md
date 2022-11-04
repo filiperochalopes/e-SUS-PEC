@@ -93,3 +93,12 @@ sh build.sh -f eSUS-AB-PEC-5.0.8-Linux64.jar
 - Testes realizados com versão `4.2.7` e `4.2.8` não foram bem sucedidos
 - A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"
 - Verificar sempre a memória caso queira fazer depois em servidor. Senão ele trará no console um `Killed` inesperado https://stackoverflow.com/questions/37071106/spring-boot-application-quits-unexpectedly-with-killed
+
+## Serviço de backup
+
+Para fazer funcionar o serviço de backup na nuvem ela deve estar relacionada a um Google Drive, se assim não for irá armazenar os backups apenas localmente. Para o uso de backup na nuvem é necessário:
+
+1. [Criar uma chave de Client ID Google](https://developers.google.com/drive/api/quickstart/python)
+2. Salve o arquivo json baixado com segurança e cole na pasta `cron/app/credentials.json`
+3. Execute `make prod-google-api` para iniciar autenticação Google e permitir acessos
+

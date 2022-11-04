@@ -22,3 +22,7 @@ terminal:
 	docker exec -it esus_app bash
 db-terminal:
 	docker exec -it esus_psql bash
+prod-google-api:
+	docker exec -it esus_cron sh -c "python /home/app.py"
+google-oauth-quickstart:
+	docker exec -it esus_cron sh -c "python /home/quickstart.py"

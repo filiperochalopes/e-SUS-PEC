@@ -5,3 +5,5 @@ __pycache__
 *.backup
 .webassets-cache
 .env
+client_secret_*.json
+credentials.json
