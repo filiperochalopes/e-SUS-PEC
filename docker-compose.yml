@@ -39,6 +39,8 @@ services:
     build:
       context: cron
       dockerfile: Dockerfile
+      args:
+        - TIMEZONE=${TIMEZONE}
     volumes:
       - ./cron/crontab.txt:/crontab.txt
       - ./cron/app:/home
@@ -46,8 +48,5 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - PGPASSWORD=${POSTGRES_PASSWORD}
-      - CRON_PORT=${CRON_PORT}
-    ports:
-      - "${CRON_PORT}:5000"
     depends_on:
       - psql

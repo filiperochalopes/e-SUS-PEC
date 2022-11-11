@@ -22,7 +22,14 @@ terminal:
 	docker exec -it esus_app bash
 db-terminal:
 	docker exec -it esus_psql bash
-prod-google-api:
-	docker exec -it esus_cron sh -c "python /home/app.py"
-google-oauth-quickstart:
-	docker exec -it esus_cron sh -c "python /home/quickstart.py"
+backup-test:
+	docker exec -it esus_cron sh -c "curl localhost:5000/backup-database"
+google-oauth:
+	cd cron/app; \
+		python3 --version; \
+		pip3 install virtualenv; \
+		virtualenv cron/app/venv; \
+		chmod +x ./venv/bin/activate; \
+		./venv/bin/activate; \
+		pip install -r requirements.txt; \
+		python googleoauth.py; \

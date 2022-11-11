@@ -3,98 +3,89 @@ from datetime import datetime
 
 import os
 import sys
-from flask import Flask, request
+from flask import Flask, Response
 
-import pickle
 import os.path
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
 
-CRON_PORT = int(os.getenv('CRON_PORT', 89))
-
-# If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
-          'https://www.googleapis.com/auth/drive.file']
-
-
-now = datetime.now()
-filename = f'{now.strftime("%Y_%m_%d_%H_%M_%S")}.backup'
-
-DATABASE_HOST = os.getenv('POSTGRES_HOST', 'psql')
-DATABASE_NAME = os.getenv('POSTGRES_DB', 'esus')
-DATABASE_USER = os.getenv('POSTGRES_USER', 'postgres')
-
-google_drive_folder_id = '1osoeAhww2IM2V2W_xbgcRoROHEk_DAPw' 
-
-
-def get_google_credentials():
-    """Authenticates at Google API"""
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                os.path.join(os.path.dirname(__file__), 'credentials.json'), SCOPES)
-            creds = flow.run_local_server(
-                host='localhost', port=CRON_PORT, open_browser=True)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    
-    return creds
-
+from .env import BACKUP_EXPIRATION_TIME, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, FILENAME, GOOGLE_DRIVE_FOLDER_ID, FILE_EXTENSION
+from .googleoauth import get_google_credentials
 
 app = Flask(__name__)
 
+def get_file_in_path(filename):
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), filename)
 
-@app.route("/")
-def home():
-    code = request.args.get('code')
-    flow = InstalledAppFlow.from_client_secrets_file(
-                os.path.join(os.path.dirname(__file__), 'credentials.json'), SCOPES, redirect_uri='/api/v1/backup-database')
-    flow.fetch_token(code=code, include_client_id=True)
-    return  code
+def upload_file(service, filename, mime_type, folder_id):
+    try:
+        file_metadata = {
+                'name': filename,
+                'parents': [folder_id],
+                'mimeType': mime_type
+            }
+
+        media = MediaFileUpload(get_file_in_path(filename), mimetype=mime_type, resumable=True)
+
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+    except HttpError as error:
+        print(f'An error occurred: {error}')
+        file = None
+
+    return file.get('id')
 
 @app.route("/backup-database")
 def backup_database():
     from sh import pg_dump
 
-    print(os.path.join(os.path.dirname(__file__)), file=sys.stderr)
-    print(os.path.join(os.path.dirname(__file__),
-          'credentials.json'), file=sys.stderr)
-
     print('Realizando backup do banco de dados...', file=sys.stderr)
     pg_dump('--host', DATABASE_HOST, '--port', '5432', '-U', DATABASE_USER, '-w', '--format', 'custom', '--blobs', '--encoding',
-            'UTF8', '--no-privileges', '--no-tablespaces', '--no-unlogged-table-data', '--file', f'/home/{filename}', DATABASE_NAME)
+            'UTF8', '--no-privileges', '--no-tablespaces', '--no-unlogged-table-data', '--file', f'/home/{FILENAME}', DATABASE_NAME)
 
-    # Google Drive service
+    
+    # upload de arquivo
+    print('Autenticando no Google...', file=sys.stderr)
     service = build('drive', 'v3', credentials=get_google_credentials())
 
-    print("Folder ID:", google_drive_folder_id)
-    # upload a file text file
-    # first, define file metadata, such as the name and the parent folder ID
-    file_metadata = {
-        "name": filename,
-        "parents": [google_drive_folder_id]
-    }
+    print('Realizando upload para Google Drive...', file=sys.stderr)
+    file_id = upload_file(service=service, filename=FILENAME, mime_type='application/octet-stream', folder_id=GOOGLE_DRIVE_FOLDER_ID)
+    print('File uploaded:', file_id)
 
-    # upload
-    media = MediaFileUpload(f'/home/{filename}', resumable=True)
-    file = service.files().create(body=file_metadata,
-                                  media_body=media, fields='id').execute()
-    print("File created, id:", file.get("id"))
+    # Google Drive API: https://developers.google.com/drive/api/v3/reference
+    print('Listando arquivos na pasta de backup...', file=sys.stderr)
+    # fields props: https://developers.google.com/drive/api/v3/reference/files
+    # query props: https://developers.google.com/drive/api/guides/search-files#python
+    results = service.files().list(q=f'"{GOOGLE_DRIVE_FOLDER_ID}" in parents and trashed = false', orderBy='createdTime desc',
+        pageSize=20, fields="nextPageToken, files(id, name, mimeType, description, trashed)").execute()
+    items = results.get('files', [])
 
-    return None
+    if not items:
+        print('No files found.', file=sys.stderr)
+        return
+    else:
+        for item in items:
+            print('{:<40} {:<20} {:<20}'.format(item['name'], item['mimeType'], item['trashed']), file=sys.stderr)
+
+    print('Excluindo arquivos antigos...', file=sys.stderr)
+    for item in items:
+        filename_datetime = item['name'].replace(FILE_EXTENSION, '')
+        try:
+            print(datetime.now())
+            print(BACKUP_EXPIRATION_TIME)
+            if datetime.strptime(filename_datetime, '%Y_%m_%d_%H_%M_%S') < BACKUP_EXPIRATION_TIME:
+                filename = f'{filename_datetime}{FILE_EXTENSION}'
+                print(f'Excluindo {filename}', file=sys.stderr)
+                os.remove(get_file_in_path(filename))
+                service.files().delete(fileId=item['id']).execute()
+        except Exception as e:
+            print('error', e)
+
+    return Response('Backup realizado', status=201)
 
 if __name__ == '__main__':
     get_google_credentials()

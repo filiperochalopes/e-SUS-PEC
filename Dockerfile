@@ -43,6 +43,4 @@ COPY ./run.sh run.sh
 RUN chmod +x /var/www/html/install.sh
 RUN chmod +x /var/www/html/run.sh
 
-EXPOSE 8080
-
 CMD "/var/www/html/run.sh"

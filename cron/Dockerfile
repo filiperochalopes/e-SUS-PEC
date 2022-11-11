@@ -1,7 +1,16 @@
 FROM python:alpine3.16
 
 # instalando dependências para o container
-RUN apk add --no-cache postgresql-client
+RUN apk add --no-cache postgresql-client tzdata curl
+
+ARG TIMEZONE
+
+# Configurando timezone
+RUN ls /usr/share/zoneinfo
+RUN cp "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+RUN echo "${TIMEZONE}" >  /etc/timezone
+RUN date
+RUN apk del tzdata
 
 # Copiando arquivos de uso do cron
 ADD crontab.txt /crontab.txt
