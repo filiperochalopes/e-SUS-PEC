@@ -97,9 +97,19 @@ sh build.sh -f eSUS-AB-PEC-5.0.14-Linux64.jar
 
 ## Serviço de backup
 
-Para fazer funcionar o serviço de backup na nuvem ela deve estar relacionada a um Google Drive, se assim não for irá armazenar os backups apenas localmente. Para o uso de backup na nuvem é necessário:
+Para fazer funcionar o serviço de backup na nuvem pelo [Google Drive](https://developers.google.com/drive/api/v3/reference) ela deve estar relacionada a um Google Drive, se assim não for irá armazenar os backups apenas localmente. Para o uso de backup na nuvem é necessário:
 
 1. [Criar uma chave de Client ID Google](https://developers.google.com/drive/api/quickstart/python)
 2. Salve o arquivo json baixado com segurança e cole na pasta como `cron/app/credentials.json`
-3. Execute `make google-oauth` para iniciar autenticação Google e permitir acessos. É necessário para criar o `token.json` que guardará as credenciais. Caso o comando não funcione, provavelmente você não está no linux ou não tem o `python3` instalado no seu linux. **É importante que ao executar o comando você esteja dentro da pasta raiz do projeto.
+3. Execute 
+```sh
+make google-oauth
+```
+Para iniciar autenticação Google e permitir acessos. É necessário para criar o `token.json` que guardará as credenciais. Caso o comando não funcione, provavelmente você não está no linux ou não tem o `python3` instalado no seu linux. **É importante que ao executar o comando você esteja dentro da pasta raiz do projeto.**
 
+Para realizar um teste de backup execute:
+```
+make cloud-backup
+```
+
+As configurações de tempo de expiração de backup estão disponíveis em `env.py`

@@ -22,7 +22,7 @@ terminal:
 	docker exec -it esus_app bash
 db-terminal:
 	docker exec -it esus_psql bash
-backup-test:
+cloud-backup:
 	docker exec -it esus_cron sh -c "curl localhost:5000/backup-database"
 google-oauth:
 	cd cron/app; \
