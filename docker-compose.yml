@@ -33,3 +33,20 @@ services:
       - "${APP_PORT}:8080"
     depends_on:
       - psql
+  cron:
+    container_name: esus_cron
+    restart: always
+    build:
+      context: cron
+      dockerfile: Dockerfile
+      args:
+        - TIMEZONE=${TIMEZONE}
+    volumes:
+      - ./cron/crontab.txt:/crontab.txt
+      - ./cron/app:/home
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - psql
