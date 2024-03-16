@@ -1,4 +1,4 @@
-version: "3"
+version: "3.7"
 services:
   psql:
     container_name: esus_psql
@@ -15,6 +15,7 @@ services:
       - "${POSTGRESQL_PORT}:5432"
   app:
     container_name: esus_app
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile

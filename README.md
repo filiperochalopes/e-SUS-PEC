@@ -5,47 +5,51 @@ Compatível e testado com
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
+## Alinhando conhecimentos
+
+Para poder rodar esse sistema é necessário ter conhecimentos básicos dos seguintes programas e ambientes:
+- Linux: É o sistema opercional (OS) amplamente utilizado em servidores devido a sua segurança, leveza e versatilidade. Em servidores não temos uma identificação visual de pastas e arquivos, portanto toda a navegação e ações do usuário são por [linhas de código](https://diolinux.com.br/sistemas-operacionais/principais-comandos-do-linux-saiba-o.html)
+- Docker: É um programa que você deve pensar como um container com todos os arquivos dentro para rodar o sistema que você quer rodar ao final, ao colocar o container no seu servidor e rodar ele, deve então funcionar em qualquer ambiente da mesma forma. Isso dispensa o ter que configurar todo o ambiente para receber o programa, pois quem fez o container já fez isso para você.
+
 ## Preparando pacotes
 
 Tenha o [`docker`](https://docs.docker.com/engine/install/) e [`docker-compose`](https://docs.docker.com/compose/install/) instalado na máquina
 
-## Instalando serviço
+## Instalação do PEC
 
 Para instalação foi criado um script que posse ser executado copiando o bloco abaixo, se você estiver migrando de versão [leia o parágrafo abaixo](#migrando-versao)
 
-```sh
-# Substitua eSUS-AB-PEC-5.0.8-Linux64.jar pelo pacote que você baixou no site https://sisaps.saude.gov.br/esus/
-sh build.sh -f eSUS-AB-PEC-5.0.8-Linux64.jar
-```
-
-## Executando o serviço
-
-Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser útil
+### 1. Baixe o pacote do programa PEC na versão que deseja instalar/atualizar. Você pode também [baixar no site oficial do PEC APS](https://sisaps.saude.gov.br/esus)
 
 ```sh
-# Em linux
-make run
-# Depois de rodar novamente os containers
-docker-compose up -d
-# Caso nenhum dos anteriores funcione execute diretamente o executável do sistema pec
-docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
+wget https://arquivos.esusab.ufsc.br/PEC/mtRazOmMxfBpkEMK/5.2.28/eSUS-AB-PEC-5.2.28-Linux64.jar
 ```
 
-## Fazendo backup do banco de dados
+Gostaria de migrar de outro banco de dados? [Acesse a seção de migração](#migrando-versao) 
+
+### 2. Rode o script para instalar o pacote baixado e criar o container
+
+```sh
+sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar
+```
+
+## Backup e Restauração de Banco de Dados
+
+### Fazendo backup
 
 ```bash
 docker exec -it esus_psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
 ```
 
-## Restaurando backup
+### Restaurando backup
 
 ```bash
 pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 ```
 
-## Realizando migração de versão <a id='migrando-versao'></a>
+## Migração de Versão PEC <a id='migrando-versao'></a>
 
-Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`
+**Disclaimer: É importante notar, segundo nota da própria equipe que mantém o PEC, que a migração do banco de dados em sistema linux não tem tantas verificações quanto o Windows, podendo, talvez, existir alguma versão de banco sem a migração adequada. *Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`* **
 
 1. Crie um backup do banco de dados e retire da pasta `data`
 
@@ -86,6 +90,19 @@ Fora do container, na pasta raiz do projeto execute, substituindo o nome do paco
 
 ```sh
 sh build.sh -f eSUS-AB-PEC-5.0.14-Linux64.jar
+```
+
+## Comandos interessantes
+
+Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser útil
+
+```sh
+# Em linux
+make run
+# Depois de rodar novamente os containers
+docker-compose up -d
+# Caso nenhum dos anteriores funcione execute diretamente o executável do sistema pec
+docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
 ```
 
 ## Known Issues (Bugs Conhecidos)
