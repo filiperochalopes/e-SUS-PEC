@@ -1,7 +1,7 @@
 # eSUS PEC
 
 Compatível e testado com  
-![version](https://img.shields.io/badge/version-5.0.12-blue) ![version](https://img.shields.io/badge/version-5.0.8-blue) ![version](https://img.shields.io/badge/version-4.5.5-blue) ![version](https://img.shields.io/badge/version-4.2.6-blue) ![version](https://img.shields.io/badge/version-5.0.14-blue)
+![version](https://img.shields.io/badge/version-5.2.28-cyan) ![version](https://img.shields.io/badge/version-5.0.12-blue) ![version](https://img.shields.io/badge/version-5.0.8-blue) ![version](https://img.shields.io/badge/version-4.5.5-blue) ![version](https://img.shields.io/badge/version-4.2.6-blue) ![version](https://img.shields.io/badge/version-5.0.14-blue)
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
@@ -9,7 +9,7 @@ Compatível e testado com
 
 Para poder rodar esse sistema é necessário ter conhecimentos básicos dos seguintes programas e ambientes:
 - Linux: É o sistema opercional (OS) amplamente utilizado em servidores devido a sua segurança, leveza e versatilidade. Em servidores não temos uma identificação visual de pastas e arquivos, portanto toda a navegação e ações do usuário são por [linhas de código](https://diolinux.com.br/sistemas-operacionais/principais-comandos-do-linux-saiba-o.html)
-- Docker: É um programa que você deve pensar como um container com todos os arquivos dentro para rodar o sistema que você quer rodar ao final, ao colocar o container no seu servidor e rodar ele, deve então funcionar em qualquer ambiente da mesma forma. Isso dispensa o ter que configurar todo o ambiente para receber o programa, pois quem fez o container já fez isso para você.
+- [Docker](https://www.youtube.com/watch?v=ntbpIfS44Gw): É um programa que você deve pensar como um container com todos os arquivos dentro para rodar o sistema que você quer rodar ao final, ao colocar o container no seu servidor e rodar ele, deve então funcionar em qualquer ambiente da mesma forma. Isso dispensa o ter que configurar todo o ambiente para receber o programa, pois quem fez o container já fez isso para você.
 
 ## Preparando pacotes
 
@@ -49,7 +49,8 @@ pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 
 ## Migração de Versão PEC <a id='migrando-versao'></a>
 
-**Disclaimer: É importante notar, segundo nota da própria equipe que mantém o PEC, que a migração do banco de dados em sistema linux não tem tantas verificações quanto o Windows, podendo, talvez, existir alguma versão de banco sem a migração adequada. *Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`* **
+
+⚠️ **Disclaimer**: É importante notar, segundo nota da própria equipe que mantém o PEC, que a migração do banco de dados em sistema linux não tem tantas verificações quanto o Windows, podendo, talvez, existir alguma versão de banco sem a migração adequada. *Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`* .
 
 1. Crie um backup do banco de dados e retire da pasta `data`
 
@@ -112,7 +113,7 @@ docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
 - Verificar sempre a memória caso queira fazer depois em servidor. Senão ele trará no console um `Killed` inesperado https://stackoverflow.com/questions/37071106/spring-boot-application-quits-unexpectedly-with-killed
 - Não instale a versão `5.0.8`, do de cabeça, não carrega alguns exames e atendimentos de forma aparentemente aleatória, corrigido após instalar versão `5.0.14`
 
-## Serviço de backup
+## Serviço de Backup Automático com Google Drive
 
 Para fazer funcionar o serviço de backup na nuvem pelo [Google Drive](https://developers.google.com/drive/api/v3/reference) ela deve estar relacionada a um Google Drive, se assim não for irá armazenar os backups apenas localmente. Para o uso de backup na nuvem é necessário:
 
