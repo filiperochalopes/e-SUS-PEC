@@ -1,7 +1,12 @@
-while getopts f: flag
-do
+training=''
+
+while getopts "tf:" flag; do
     case "${flag}" in
         f) filename=${OPTARG};;
+        t) training='-treinamento';;
+        \?)
+        echo "Opção(ões) inválida(s) adicionada(s), apenas -f {nome do arquivo} e -t para versão de treinamento são consideradas válidas"
+        ;;
     esac
 done
 
@@ -10,7 +15,8 @@ export COMPOSE_HTTP_TIMEOUT=8000
 echo "Instalando e-SUS-PEC pelo arquivo $filename";
 docker-compose down --volumes --remove-orphans
 sudo chmod -R 755 data
-docker-compose build --build-arg JAR_FILENAME=$filename
+echo "docker-compose build --build-arg JAR_FILENAME=$filename --build-arg TRAINING=$training"
+docker-compose build --build-arg JAR_FILENAME=$filename --build-arg TRAINING=$training
 docker-compose up -d
 echo "Avaliando estado de execução container"
 docker-compose ps

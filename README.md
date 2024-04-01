@@ -33,6 +33,42 @@ Gostaria de migrar de outro banco de dados? [Acesse a seção de migração](#mi
 sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar
 ```
 
+Para criar uma versão de treinamento use:
+
+```sh
+sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar -t
+```
+
+**Sobre a versão de Treinamento**
+
+[O pacote java disponibilizado](https://sisaps.saude.gov.br/esus/) pelo Ministério da Saúde/Secretaria de Atenção Primária à Saúde. [Laboratório Bridge](https://www.linkedin.com/company/laboratoriobridge/)/Universidade Federal de Santa Catarina. [Página de Suporte](https://esusaps.freshdesk.com/support/login)
+
+```sh
+# java -jar {pacote} -help
+Usage: <main class> [[-url=<url>] [-username=<username>]
+                    [-password=<password>]] [[-restore=<dumpFilePath>]]
+                    [[-backup]] [-console] [-continue] [-help] [-treinamento]
+      -console               Inicializa o assistente em modo linha de comandos. Se omitido esse parâmetro, o assistente inicializa em modo interface gráfica.
+      -treinamento           Indica que a Nova Instalação será de Treinamento. Se omitido esse parâmetro, a Nova Instalação será de Produção.
+      -help                  Mostra estas informações sobre a utilização dos parâmetros do assistente.
+      -continue              Modo não interativo. Continua com a execução das tarefas necessárias sem a necessidade de confirmação do usuário.
+
+Caso tenha um Banco de Dados instalado, informe os seguintes parâmetros para
+Nova Instalação:
+      -url=<url>             URL de conexão para acesso ao Banco de Dados
+      -username=<username>   Nome de usuário para acesso ao Banco de Dados
+      -password=<password>   Senha para acesso ao Banco de Dados
+
+Caso seja uma nova instalação padrão, pode-se utilizar um backup do Banco de
+Dados do PEC existente com o seguinte comando:
+      -restore=<dumpFilePath>
+                             Caminho do arquivo de backup do Banco de Dados do PEC
+
+Caso seja uma atualização de uma instalação padrão, pode ser usado o seguinte
+parâmetro:
+      -backup                Cria um backup do Banco de Dados antes de atualizar. Se omitido esse parâmetro, não será realizado um backup.
+```
+
 ## Backup e Restauração de Banco de Dados
 
 ### Fazendo backup
