@@ -5,6 +5,17 @@ Compatível e testado com
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
+## Instalação TD;LR
+
+Baixe o jar da aplicação e execute o script de instalação para um banco de dados novo, use o argumento `-t` se quiser que a versão instalada seja de treinamento:
+
+```sh
+wget https://arquivos.esusab.ufsc.br/PEC/mtRazOmMxfBpkEMK/5.2.28/eSUS-AB-PEC-5.2.28-Linux64.jar
+sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar -t
+```
+Acesse [Live/Demo](https://pec.filipelopes.med.br) 
+Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
+
 ## Alinhando conhecimentos
 
 Para poder rodar esse sistema é necessário ter conhecimentos básicos dos seguintes programas e ambientes:
@@ -14,6 +25,19 @@ Para poder rodar esse sistema é necessário ter conhecimentos básicos dos segu
 ## Preparando pacotes
 
 Tenha o [`docker`](https://docs.docker.com/engine/install/) e [`docker-compose`](https://docs.docker.com/compose/install/) instalado na máquina
+
+Em uma VPS Ubuntu ou Debian, vamos [instalar o docker](https://docs.docker.com/engine/install/ubuntu/):
+
+```sh
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+Para controle dos containers pode ser útil utilizar o [Portainer](https://docs.portainer.io/start/install-ce/server/docker/linux), assim ficará mais fácil verificar os erros e entrar nas aplicações:
+
+```sh
+docker volume create portainer_data
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+```
 
 ## Instalação do PEC
 
@@ -33,7 +57,7 @@ Gostaria de migrar de outro banco de dados? [Acesse a seção de migração](#mi
 sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar
 ```
 
-Para criar uma versão de treinamento use:
+Para instalar a versão de treinamento use o argumento `-t`
 
 ```sh
 sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar -t
@@ -74,13 +98,17 @@ parâmetro:
 ### Fazendo backup
 
 ```bash
-docker exec -it esus_psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
+docker compose exec -it psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
 ```
 
 ### Restaurando backup
 
 ```bash
 pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
+```
+
+```bash
+psql -U postgres esus < backupfile.sql
 ```
 
 ## Migração de Versão PEC <a id='migrando-versao'></a>
@@ -94,6 +122,14 @@ pg_restore -U "postgres" -d "esus" -1 "/home/seu_arquivo.backup"
 docker exec -it esus_psql bash -c 'pg_dump --host localhost --port 5432 -U "postgres" --format custom --blobs --encoding UTF8 --no-privileges --no-tablespaces --no-unlogged-table-data --file "/home/$(date +"%Y_%m_%d__%H_%M_%S").backup" "esus"'
 sudo cp data/backups/nome_do_arquivo.backup .
 ```
+
+Ou pode-se optar por fazer o backup pela própria ferramenta do PEC, use:
+
+```sh
+java jar esus-pec.jar -help
+```
+Para mais informações.
+
 
 2. Exclua todo o banco de dados e dados relacionados em volume
 
