@@ -1,7 +1,11 @@
 #!/bin/sh
 
-echo "Inicializando configuração de data e hora..."
-ntpd -gq
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo "${GREEN}Inicializando configuração de data e hora...${NC}"
+# ntpd -gq
 service ntp start
 
 echo "Ajustando data para $TIMEZONE ..."
@@ -9,7 +13,7 @@ echo $TIMEZONE > /etc/timezone && \
 ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime && \
 dpkg-reconfigure -f noninteractive tzdata
 
-echo "Inicializando sistema..."
+echo "${GREEN}Inicializando sistema...${NC}"
 FILE=/opt/e-SUS/webserver/standalone.sh
 
 if test -f "$FILE"; then
@@ -22,10 +26,10 @@ if test -f "$FILE"; then
         nohup /opt/e-SUS/webserver/standalone.sh & tail -f nohup.out
     fi
 else
-    printf "$FILE não existe, execute manualmente o sistema com\n \
+    printf "${RED}$FILE não existe, execute manualmente o sistema com\n \
     sh /opt/e-SUS/webserver/standalone.sh\n\n \
     ou instale o sitema primeiro, caso seja a primeira vez instalando:\n\n
-    sh /install.sh"
+    sh /install.sh${NC}"
 fi
 
 /bin/bash
