@@ -1,6 +1,13 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y wget apt-utils gnupg2 software-properties-common locales libfreetype6 ntp
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    locales \
+    && locale-gen "pt_BR.UTF-8" \
+    && dpkg-reconfigure --frontend=noninteractive locales \
+    && apt-get install -y \
+    wget apt-utils gnupg2 software-properties-common locales libfreetype6 ntp
 RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add - 
 RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
 RUN apt-get update && apt-get install -y java-1.8.0-amazon-corretto-jdk
@@ -33,7 +40,6 @@ RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
 RUN locale -a
-RUN locale-gen "pt_BR.UTF-8"
 RUN update-locale 
 
 RUN echo "Copiando arquivo de instalação $JAR_FILENAME"
@@ -46,4 +52,10 @@ COPY ./run.sh run.sh
 RUN chmod +x /var/www/html/install.sh
 RUN chmod +x /var/www/html/run.sh
 
-CMD "/var/www/html/run.sh"
+# CMD "/var/www/html/run.sh"
+
+STOPSIGNAL SIGRTMIN+3
+
+CMD ["/lib/systemd/systemd"]
+# Use 'CMD' to run 'systemd' in the foreground as PID 1
+# CMD ["/usr/lib/systemd/systemd", "--system", "--unit=multi-user.target"]

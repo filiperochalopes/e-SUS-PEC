@@ -1,24 +1,32 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+// README at: https://github.com/devcontainers/templates/tree/main/src/java-postgres
 {
-	"name": "Ubuntu",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:jammy",
-	"features": {
-		"ghcr.io/devcontainers/features/java:1": {}
-	}
+	"name": "Java & PostgreSQL",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	// "features": {}
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// This can be used to network with other containers or with the host.
+	// "forwardPorts": [5432],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
+	// "postCreateCommand": "java -version",
 
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"esbenp.prettier-vscode",
+				"codeium.codeium"
+			]
+		}
+	}
+
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"

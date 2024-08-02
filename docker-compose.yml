@@ -26,10 +26,13 @@ services:
         - TIMEZONE=${TIMEZONE}
     stdin_open: true
     tty: true
+    privileged: true
     volumes:
       - ./install.sh:/var/www/html/install.sh
       - ./run.sh:/var/www/html/run.sh
       - ./data/e-SUS:/opt/e-SUS
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /tmp/app_run:/run
     ports:
       - "${APP_PORT}:8080"
     depends_on:

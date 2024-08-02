@@ -1,4 +1,3 @@
-version: "3"
 services:
   psql:
     container_name: esus_psql
