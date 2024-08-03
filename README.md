@@ -1,7 +1,7 @@
 # eSUS PEC
 
 Compatível e testado com  
- ![version](https://img.shields.io/badge/version-5.2.38-green) ![version](https://img.shields.io/badge/version-5.2.28-green)  ![version](https://img.shields.io/badge/version-4.2.8-red) ![version](https://img.shields.io/badge/version-4.2.7-red) 
+ ![version](https://img.shields.io/badge/version-5.2.38-green) ![version](https://img.shields.io/badge/version-5.2.28-green) ![version](https://img.shields.io/badge/version-4.2.8-red) ![version](https://img.shields.io/badge/version-4.2.7-red)
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
@@ -13,7 +13,8 @@ Baixe o jar da aplicação e execute o script de instalação para um banco de d
 wget https://https://arquivos.esusab.ufsc.br/PEC/c0d1d77e70c98177/5.2.38/eSUS-AB-PEC-5.2.38-Linux64.jar
 sh build.sh -f eSUS-AB-PEC-5.2.38-Linux64.jar
 ```
-Acesse [Live/Demo](https://pec.filipelopes.med.br) 
+
+Acesse [Live/Demo](https://pec.filipelopes.med.br)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
 
 ## Sumário
@@ -30,6 +31,7 @@ Ajude esse e outros projetos OpenSource para saúde: [Patrocínio](#patrocinio)
 ## Alinhando conhecimentos <a id="alinhando-conhecimentos"></a>
 
 Para poder rodar esse sistema é necessário ter conhecimentos básicos dos seguintes programas e ambientes:
+
 - Linux: É o sistema opercional (OS) amplamente utilizado em servidores devido a sua segurança, leveza e versatilidade. Em servidores não temos uma identificação visual de pastas e arquivos, portanto toda a navegação e ações do usuário são por [linhas de código](https://diolinux.com.br/sistemas-operacionais/principais-comandos-do-linux-saiba-o.html)
 - [Docker](https://www.youtube.com/watch?v=ntbpIfS44Gw): É um programa que você deve pensar como um container com todos os arquivos dentro para rodar o sistema que você quer rodar ao final, ao colocar o container no seu servidor e rodar ele, deve então funcionar em qualquer ambiente da mesma forma. Isso dispensa o ter que configurar todo o ambiente para receber o programa, pois quem fez o container já fez isso para você.
 
@@ -60,7 +62,7 @@ Para instalação foi criado um script que posse ser executado copiando o bloco 
 wget https://arquivos.esusab.ufsc.br/PEC/mtRazOmMxfBpkEMK/5.2.28/eSUS-AB-PEC-5.2.28-Linux64.jar
 ```
 
-Gostaria de migrar de outro banco de dados? [Acesse a seção de migração](#migrando-versao) 
+Gostaria de migrar de outro banco de dados? [Acesse a seção de migração](#migrando-versao)
 
 ### 2. Rode o script para instalar o pacote baixado e criar o container
 
@@ -76,14 +78,22 @@ sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar -t
 
 ## Patrocínio <a id="patrocinio"></a>
 
-Agradecimentos à equipe [NoHarm](https://noharm.ai/) que investiu nesse projeto para facilitar a instalação dessa aplicação tão amplamente utilizada no SUS/Brasil. 
+Agradecimentos à equipe [NoHarm](https://noharm.ai/) que investiu nesse projeto para facilitar a instalação dessa aplicação tão amplamente utilizada no SUS/Brasil.
 
-[![image](https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg)](https://noharm.ai/)
+[![image](https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg | width=100)](https://noharm.ai/)
 
+<div align="center">
 Apoie também esse e outros projetos.  
-[Apoio Recorrente](https://buy.stripe.com/6oEdTgaJx3N17EQ145)  
-[Apoio pontual](https://donate.stripe.com/28oaH48Bp2IX5wI4gg)
-[Manda uma mensagem](https://wa.me/5571986056232?text=Ol%C3%A1%2C%20gostaria%20de%20cooperar%20em%20projetos%20de%20tecnologia%20em%20sa%C3%BAde%20como%20o%20PEC)  
+<a href="https://buy.stripe.com/6oEdTgaJx3N17EQ145">
+      <img src="https://img.shields.io/badge/Apoio%20Recorrente-008CDD?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe Badge"/>
+  </a>
+  <a href="https://donate.stripe.com/28oaH48Bp2IX5wI4gg">
+      <img src="https://img.shields.io/badge/Compre_um_café-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Buy Me a Coffe Badge"/>
+  </a>
+  <a href="https://wa.me/5571986056232?text=Ol%C3%A1%2C%20gostaria%20de%20cooperar%20em%20projetos%20de%20tecnologia%20em%20sa%C3%BAde%20como%20o%20PEC">
+      <img src="https://img.shields.io/badge/Mande_uma_menssagem-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp Badge"/>
+  </a>
+</div>
 
 ## Versão de Treinamento <a id="versao-treinamento"></a>
 
@@ -135,8 +145,7 @@ psql -U postgres esus < backupfile.sql
 
 ## Migração de Versão PEC <a id="migrando-versao"></a>
 
-
-⚠️ **Disclaimer**: É importante notar, segundo nota da própria equipe que mantém o PEC, que a migração do banco de dados em sistema linux não tem tantas verificações quanto o Windows, podendo, talvez, existir alguma versão de banco sem a migração adequada. *Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`* .
+⚠️ **Disclaimer**: É importante notar, segundo nota da própria equipe que mantém o PEC, que a migração do banco de dados em sistema linux não tem tantas verificações quanto o Windows, podendo, talvez, existir alguma versão de banco sem a migração adequada. _Testado e funcionou após migrar a versão de `4.2.6` para `4.5.5`_ .
 
 1. Crie um backup do banco de dados e retire da pasta `data`
 
@@ -150,8 +159,8 @@ Ou pode-se optar por fazer o backup pela própria ferramenta do PEC, use:
 ```sh
 java jar esus-pec.jar -help
 ```
-Para mais informações.
 
+Para mais informações.
 
 2. Exclua todo o banco de dados e dados relacionados em volume
 
