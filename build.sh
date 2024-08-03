@@ -3,18 +3,20 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 training=''
-cache='--no-cache'
+cache=''
 
-while getopts "tf:" flag; do
+while getopts "d:f:tc" flag; do
     case "${flag}" in
         f) filename=${OPTARG};;
         t) training='-treinamento';;
-        c) cache='';;
+        d) dumpfile=${OPTARG};;
+        c) cache='--no-cache';;
         \?)
         echo "${RED}Opção(ões) inválida(s) adicionada(s), apenas
 
             -f {nome do arquivo} para especificar o arquivo jar a ser utilizado, 
             -c para utilizar o cache quando estiver rodando build das imagens docker e
+            -d para redirecionar a um dump de banco de dados
             -t para versão de treinamento 
             
             são consideradas válidas${NC}"
@@ -27,8 +29,12 @@ export COMPOSE_HTTP_TIMEOUT=8000
 echo "${GREEN}Instalando e-SUS-PEC pelo arquivo $filename${NC}";
 docker compose down --volumes --remove-orphans
 sudo chmod -R 755 data
-echo "docker-compose build --build-arg JAR_FILENAME=$filename --build-arg TRAINING=$training"
-docker compose build --build-arg JAR_FILENAME=$filename --build-arg TRAINING=$training
+
+echo "\n*******************"
+echo "docker compose build $cache --build-arg JAR_FILENAME=$filename --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training "
+echo "*******************\n"
+
+docker compose build $cache --build-arg JAR_FILENAME=$filename --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training 
 docker compose up -d
 echo "Avaliando estado de execução container"
 docker compose ps
