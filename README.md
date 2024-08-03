@@ -80,10 +80,12 @@ sh build.sh -f eSUS-AB-PEC-5.2.28-Linux64.jar -t
 
 Agradecimentos à equipe [NoHarm](https://noharm.ai/) que investiu nesse projeto para facilitar a instalação dessa aplicação tão amplamente utilizada no SUS/Brasil.
 
-[![image](https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg | width=100)](https://noharm.ai/)
-
 <div align="center">
+
+<a href="https://noharm.ai/"><img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg" width="200"/></a>
+
 Apoie também esse e outros projetos.  
+
 <a href="https://buy.stripe.com/6oEdTgaJx3N17EQ145">
       <img src="https://img.shields.io/badge/Apoio%20Recorrente-008CDD?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe Badge"/>
   </a>
