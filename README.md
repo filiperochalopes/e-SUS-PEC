@@ -154,7 +154,7 @@ sudo cp nome_do_arquivo.backup data/backups/
 
 ```sh
 docker exec -it esus_psql bash
-pg_restore -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
+pg_restore --verbose -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
 ```
 
 6. Instale o programa

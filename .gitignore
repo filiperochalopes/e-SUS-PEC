@@ -14,3 +14,4 @@ venv
 pec.log
 *.deb
 docker-compose.npm.yml
+*.sql

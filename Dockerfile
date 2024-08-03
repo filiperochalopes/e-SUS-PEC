@@ -51,9 +51,3 @@ RUN chmod +x /var/www/html/install.sh
 RUN chmod +x /var/www/html/run.sh
 
 CMD ["/bin/bash", "/var/www/html/run.sh"]
-
-# STOPSIGNAL SIGRTMIN+3
-
-# CMD ["/lib/systemd/systemd"]
-# Use 'CMD' to run 'systemd' in the foreground as PID 1
-# CMD ["/usr/lib/systemd/systemd", "--system", "--unit=multi-user.target"]
