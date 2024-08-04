@@ -14,6 +14,14 @@ wget https://https://arquivos.esusab.ufsc.br/PEC/c0d1d77e70c98177/5.2.38/eSUS-AB
 sh build.sh -f eSUS-AB-PEC-5.2.38-Linux64.jar
 ```
 
+Para execução com banco de dados externo:
+
+1. Configure as variáveis de ambiente disponíveis em `.env.external-db.example` colando em `.env.external-db`
+
+```sh
+sh build.sh -e
+```
+
 Acesse [Live/Demo](https://pec.filipelopes.med.br)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
 

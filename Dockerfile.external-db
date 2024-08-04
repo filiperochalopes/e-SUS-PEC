@@ -1,0 +1,41 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    locales \
+    && locale-gen "pt_BR.UTF-8" \
+    && dpkg-reconfigure --frontend=noninteractive locales \
+    && apt-get install -y \
+    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp
+
+# Instalando java 8, pre-requisitos para instalação do sistema PEC
+RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add - 
+RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
+RUN apt-get update && apt-get install -y java-1.8.0-amazon-corretto-jdk
+
+# Enable all repositories
+RUN sed -i 's/# deb/deb/g' /etc/apt/sources.list
+
+# Instalações para uso do cron e configurações para utilização do systemd
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+    dbus systemd systemd-cron rsyslog iproute2 python-is-python3 python3 python3-apt sudo bash ca-certificates && \
+    apt-get clean && \
+    rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ARG JAR_FILENAME
+ARG TIMEZONE
+ARG DB_URL
+ARG DB_PASS
+ARG DB_USER
+
+RUN mkdir -p /var/www/html
+WORKDIR /var/www/html
+
+COPY ./${JAR_FILENAME} ${JAR_FILENAME}
+
+# Execução do script de instalação
+RUN java -verbose -jar ${JAR_FILENAME} -console -url=${DB_URL} -username=${DB_USER} -password=${DB_PASS} -continue > ./application.log 2>&1
+
+# CMD ["/bin/bash", "/opt/e-SUS/webserver/standalone.sh"]

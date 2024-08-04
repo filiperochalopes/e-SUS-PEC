@@ -15,3 +15,5 @@ pec.log
 *.deb
 docker-compose.npm.yml
 *.sql
+.env.external-db
+esus-jar/

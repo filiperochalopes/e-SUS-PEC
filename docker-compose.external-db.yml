@@ -1,0 +1,22 @@
+  services:
+    pec:
+      container_name: pec
+      platform: linux/amd64
+      restart: unless-stopped
+      env_file: .env.external-db
+      build:
+        context: .
+        dockerfile: Dockerfile.external-db
+        args:
+          - TIMEZONE=${TIMEZONE}
+          - DB_PASS=${POSTGRES_PASSWORD}
+          - DB_USER=${POSTGRES_USER}
+      stdin_open: true
+      tty: true
+      volumes:
+        - ./data/pec:/opt/e-SUS
+        - ./TestJDBC.java:/var/www/html/TestJDBC.java
+      ports:
+        - "${APP_PORT}:8080"
+      extra_hosts:
+      - "host.docker.internal:host-gateway"
