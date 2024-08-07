@@ -6,6 +6,7 @@ services:
     volumes:
       - ./data/psql_db:/var/lib/postgresql/data
       - ./data/backups:/home
+      - ./psql-entrypoint:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}

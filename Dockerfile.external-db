@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp
 
 # Instalando java 8, pre-requisitos para instalação do sistema PEC
-RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add - 
+RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add -
 RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
 RUN apt-get update && apt-get install -y java-1.8.0-amazon-corretto-jdk
 
@@ -30,12 +30,24 @@ ARG DB_URL
 ARG DB_PASS
 ARG DB_USER
 
+ENV JAR_FILENAME=${JAR_FILENAME}
+ENV DB_URL=${DB_URL}
+ENV DB_PASS=${DB_PASS}
+ENV DB_USER=${DB_USER}
+
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
+RUN if [ -f /etc/pec.config ]; then rm /etc/pec.config; fi
+
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
+COPY ./run-java.sh /run-java.sh
+
+RUN chmod +x /run-java.sh
 
 # Execução do script de instalação
-RUN java -verbose -jar ${JAR_FILENAME} -console -url=${DB_URL} -username=${DB_USER} -password=${DB_PASS} -continue > ./application.log 2>&1
+RUN /run-java.sh
 
-# CMD ["/bin/bash", "/opt/e-SUS/webserver/standalone.sh"]
+RUN chmod +x /opt/e-SUS/webserver/standalone.sh
+
+CMD ["/bin/bash", "/opt/e-SUS/webserver/standalone.sh"]

@@ -92,12 +92,12 @@ fi
 
 if $use_external_db; then
     # Monta a URL do banco de dados JDBC
-    jdbc_url="jdbc:postgresql://$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?ssl=true&sslmode=disabled&sslfactory=org.postgresql.ssl.NonValidatingFactory" 
+    jdbc_url="jdbc:postgresql://$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?ssl=true&sslmode=allow&sslfactory=org.postgresql.ssl.NonValidatingFactory" 
     # Se use_external_db é true, é para utilizar um banco de dados externo
     echo "\n*******************"
-    echo "docker compose -f docker-compose.external-db.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DB_URL=$jdbc_url"
+    echo "docker compose --progress plain -f docker-compose.external-db.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DB_URL=$jdbc_url"
     echo "*******************\n"
-    docker compose -f docker-compose.external-db.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DB_URL=$jdbc_url
+    docker compose --progress plain -f docker-compose.external-db.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DB_URL=$jdbc_url
     docker compose -f docker-compose.external-db.yml up -d
 else
     # Se use_external_db é false, não é para utilizar um banco de dados externo
