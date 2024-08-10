@@ -9,8 +9,9 @@
         dockerfile: Dockerfile.external-db
         args:
           - TIMEZONE=${TIMEZONE}
-          - DB_PASS=${POSTGRES_PASSWORD}
           - DB_USER=${POSTGRES_USER}
+          - DB_PASS=${POSTGRES_PASSWORD}
+          - DUMPFILE=${DUMPFILE}
       stdin_open: true
       tty: true
       volumes:

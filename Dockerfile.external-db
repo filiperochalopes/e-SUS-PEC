@@ -25,15 +25,10 @@ RUN apt-get update && \
     rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG JAR_FILENAME
-ARG TIMEZONE
 ARG DB_URL
 ARG DB_PASS
 ARG DB_USER
-
-ENV JAR_FILENAME=${JAR_FILENAME}
-ENV DB_URL=${DB_URL}
-ENV DB_PASS=${DB_PASS}
-ENV DB_USER=${DB_USER}
+ARG DUMPFILE
 
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
@@ -41,13 +36,15 @@ WORKDIR /var/www/html
 RUN if [ -f /etc/pec.config ]; then rm /etc/pec.config; fi
 
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./run-java.sh /run-java.sh
+COPY ./run-java.sh .
 
-RUN chmod +x /run-java.sh
+# Copiando arquivos de backup
+COPY *.sql .
+COPY *.backup .
 
-# Execução do script de instalação
-RUN /run-java.sh
+RUN chmod +x ./run-java.sh
+RUN ./run-java.sh
 
 RUN chmod +x /opt/e-SUS/webserver/standalone.sh
 
-CMD ["/bin/bash", "/opt/e-SUS/webserver/standalone.sh"]
+CMD ["/bin/bash", "-c", "/opt/e-SUS/webserver/standalone.sh > /proc/1/fd/1 2>&1"]
