@@ -105,6 +105,54 @@ Apoie também esse e outros projetos.
   </a>
 </div>
 
+## Certificado SSL (Em processo de automatização)
+
+O certificado SSL é importante para podermos utilizar o 
+HTTPS (Habilita video chamadas e prescrição eletrônica, além de ser pré-requisito para login GOV.br). [Mais informações](https://saps-ms.github.io/Manual-eSUS_APS/docs/Apoio%20a%20Implanta%C3%A7%C3%A3o/Certificado_Https_Linux/)
+
+```sh
+# https://github.com/filiperochalopes/e-SUS-PEC/issues/14
+make generate-ssl URL=https://meu-dominio.com EMAIL=meu-email@dominio.com
+```
+
+### Por enquanto 
+
+Vamos fazer manualmente o processo que se constitui em:
+
+1. Colocar o servidor para rodar na porta 80 (padrão vem 8080) e reiniciar container 
+
+```sh
+docker compose -f docker-compose.external-db.yml down pec
+docker compose -f docker-compose.external-db.yml up -d pec
+```
+
+2. Adquirir um certificado para seu domínio da forma que preferir (certbot/Let's Encrypt)
+3. Converter certificados em JKS
+
+```sh
+openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out keystore.p12 -name esuspec -CAfile chain.pem -caname root -password pass:mypass
+
+keytool -importkeystore -deststorepass mypass -destkeypass mypass -destkeystore keystore.jks -srckeystore keystore.p12 -srcstoretype PKCS12 -srcstorepass mypass -alias esuspec
+```
+4. Colocar o servidor para rodar na porta 443, alterando o o arquivo `/opt/e-SUS/webserver/config/application.properties`
+
+```sh
+spring.datasource.url=jdbc:postgresql://noharm-dev.cnonw4s4vx7j.sa-east-1.rds.amazonaws.com:5432/esus?ssl=true&sslmode=allow&sslfactory=org.postgresql.ssl.NonValidatingFactory
+spring.datasource.password=esus_pass
+spring.datasource.driverClassName=org.postgresql.Driver
+spring.datasource.username=esus_user
+server.port=443   
+# server.ssl.key-store-type=PKCS12  
+server.ssl.key-store=/opt/e-SUS/keystore.jks
+server.ssl.key-store-password=esus_pass
+server.ssl.key-alias=esuspec
+security.require-ssl=true
+```
+
+### [Atualização de certificados](https://github.com/filiperochalopes/e-SUS-PEC/issues/14)
+
+Ainda analisando como seria isso, e para automatizar, já que o processo de retornar para porta 80, rodar novamente o certbot e voltar para 443 poderia ser doloroso.
+
 ## Versão de Treinamento <a id="versao-treinamento"></a>
 
 [O pacote java disponibilizado](https://sisaps.saude.gov.br/esus/) pelo Ministério da Saúde/Secretaria de Atenção Primária à Saúde. [Laboratório Bridge](https://www.linkedin.com/company/laboratoriobridge/)/Universidade Federal de Santa Catarina. [Página de Suporte](https://esusaps.freshdesk.com/support/login)

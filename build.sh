@@ -120,3 +120,43 @@ else
     echo "${GREEN}Executando entrypoint do e-SUS-PEC${NC}"
     docker exec -it esus_app bash -c "sh /var/www/html/run.sh"
 fi
+
+# Trabalhando com  certificados SSL
+# https://saps-ms.github.io/Manual-eSUS_APS/docs/Apoio%20a%20Implanta%C3%A7%C3%A3o/Certificado_Https_Linux/#instalando-o-certificado-ssl
+
+# Checando se a instalação é nova pelo banco de dados
+# Verifica se a instalação é nova
+is_new_installation=$(PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST_FOR_TEST -U $POSTGRES_USER -p $POSTGRES_PORT -d $POSTGRES_DB -t -c "SELECT COUNT(*) FROM ta_config_sistema WHERE co_tipo_auditoria='I' AND co_config_sistema='LINKINSTALACAO';")
+
+if [ "$is_new_installation" -eq 0 ]; then
+    echo "Instalação nova detectada."
+
+    if [ -n "$APP_URL" ]; then
+        echo "APP_URL foi definido: $APP_URL"
+
+        if [[ "$APP_URL" == https* ]]; then
+            echo "Criando certificado SSL para $APP_URL"
+            make generate-ssl URL=$APP_URL EMAIL=$CERTBOT_EMAIL
+        else
+            echo "APP_URL não é HTTPS. Atualizando banco de dados com o link de instalação."
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST_FOR_TEST -U $POSTGRES_USER -p $POSTGRES_PORT -d $POSTGRES_DB -c "INSERT INTO ta_config_sistema (co_tipo_auditoria, co_config_sistema, ds_config_sistema, st_disponivel_sistema, ds_text) VALUES ('U', 'LINKINSTALACAO', 'Endereco URI da instalação', 1, '$APP_URL');"
+        fi
+    else
+        echo "APP_URL não foi definido. Nenhuma alteração realizada."
+    fi
+else
+    echo "Instalação existente detectada. Nenhuma ação necessária."
+fi
+
+# Verifica o arquivo /etc/pec.config
+if [ -f "/etc/pec.config" ]; then
+    success=$(jq -r '.success' /etc/pec.config)
+    if [ "$success" == "true" ]; then
+        echo "O arquivo /etc/pec.config está configurado corretamente com sucesso."
+    else
+        echo "${RED}Configuração do arquivo /etc/pec.config falhou.${NC}"
+        exit 1
+    fi
+else
+    echo "${RED}Arquivo /etc/pec.config não encontrado.${NC}"
+fi

@@ -1,35 +1,32 @@
-prod-run:
-	docker-compose down --remove-orphans --volumes
-	sudo chmod -R 777 data
-	docker-compose up -d
-prod-update:
-	docker-compose down --remove-orphans --volumes
-	sudo chmod -R 777 data
-	docker-compose up -d --build
-dev-run:
-	docker-compose -f docker-compose.dev.yml down --remove-orphans --volumes
-	sudo chmod -R 777 data
-	docker-compose -f docker-compose.dev.yml up -d
-dev-down:
-	docker-compose -f docker-compose.dev.yml down --remove-orphans --volumes
-dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
-dev-update:
-	docker-compose -f docker-compose.dev.yml down --remove-orphans --volumes
-	sudo chmod -R 777 data
-	docker-compose -f docker-compose.dev.yml up -d --build
-terminal:
-	docker exec -it esus_app bash
-db-terminal:
-	docker exec -it esus_psql bash
-cloud-backup:
-	docker exec -it esus_cron sh -c "curl localhost:5000/backup-database"
-google-oauth:
-	cd cron/app; \
-		python3 --version; \
-		pip3 install virtualenv; \
-		virtualenv cron/app/venv; \
-		chmod +x ./venv/bin/activate; \
-		./venv/bin/activate; \
-		pip install -r requirements.txt; \
-		python googleoauth.py; \
+generate-ssl:
+	# Verifica se a URL foi fornecida
+	@if [ -z "$(url)" ]; then \
+		echo "Erro: É necessário fornecer a URL."; \
+		exit 1; \
+	fi
+
+	# Verifica se o email foi fornecido
+	@if [ -z "$(email)" ]; then \
+		echo "Erro: É necessário fornecer o email."; \
+		exit 1; \
+	fi
+
+	# Criação do certificado SSL usando Certbot
+	docker compose exec -it nginx sh -c "certbot certonly --webroot -w /var/www/certbot -d $(url) --email $(email) --agree-tos --non-interactive"
+
+	# Colocar o certificado no nginx.conf
+	docker compose exec -it nginx sh -c "sed -i 's|# ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;|ssl_certificate /etc/letsencrypt/live/$(url)/fullchain.pem;|' /etc/nginx/nginx.conf"
+	docker compose exec -it nginx sh -c "sed -i 's|# ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;|ssl_certificate_key /etc/letsencrypt/live/$(url)/privkey.pem;|' /etc/nginx/nginx.conf"
+
+	# Reiniciar Nginx no container
+	docker compose exec -it nginx sh -c "nginx -s reload"
+
+	# Instalar certificado no PEC
+	docker compose exec -it pec sh -c "cp /etc/letsencrypt/live/$(url)/fullchain.pem /opt/e-SUSwebserver/config/"
+	docker compose exec -it pec sh -c "cp /etc/letsencrypt/live/$(url)/privkey.pem /opt/e-SUSwebserver/config/"
+	docker compose exec -it pec sh -c "sed -i '\$$a\server.port=443' /opt/e-SUSwebserver/config/application.properties"
+	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store-type=PKCS12' /opt/e-SUSwebserver/config/application.properties"
+	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store=/opt/e-SUSwebserver/config/fullchain.pem' /opt/e-SUSwebserver/config/application.properties"
+	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store-password=REPLACE_WITH_PASSWORD' /opt/e-SUSwebserver/config/application.properties"
+	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-alias=$(url)' /opt/e-SUSwebserver/config/application.properties"
+	docker compose exec -it pec sh -c "sed -i '\$$a\security.require-ssl=true' /opt/e-SUSwebserver/config/application.properties"
