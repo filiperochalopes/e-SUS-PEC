@@ -265,8 +265,9 @@ docker-compose up -d
 docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
 ```
 
-## Bugs Conhecidos (Known Issues)
+## Bugs Conhecidos (Known Issues) / Troubleshoot / Q&A / FAQ
 
+- O Java 8 só funciona com OpenSSL 1.1, em caso de uso do OpenSSL mais recente 3.X, não irá funcionar as chaves PKCS12 para SSL, será necessário o uso das chaves *.jks nesses casos
 - Testes realizados com versão `4.2.7` e `4.2.8` não foram bem sucedidos
 - A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"
 - Verificar sempre a memória caso queira fazer depois em servidor. Senão ele trará no console um `Killed` inesperado https://stackoverflow.com/questions/37071106/spring-boot-application-quits-unexpectedly-with-killed
