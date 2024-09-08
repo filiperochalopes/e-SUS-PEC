@@ -1,4 +1,3 @@
-version: "3.7"
 services:
   psql:
     container_name: esus_psql
@@ -7,6 +6,7 @@ services:
     volumes:
       - ./data/psql_db:/var/lib/postgresql/data
       - ./data/backups:/home
+      - ./psql-entrypoint:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -16,6 +16,7 @@ services:
   app:
     container_name: esus_app
     platform: linux/amd64
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,28 +27,13 @@ services:
         - TIMEZONE=${TIMEZONE}
     stdin_open: true
     tty: true
+    privileged: true
     volumes:
       - ./install.sh:/var/www/html/install.sh
       - ./run.sh:/var/www/html/run.sh
       - ./data/e-SUS:/opt/e-SUS
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     ports:
       - "${APP_PORT}:8080"
-    depends_on:
-      - psql
-  cron:
-    container_name: esus_cron
-    restart: always
-    build:
-      context: cron
-      dockerfile: Dockerfile
-      args:
-        - TIMEZONE=${TIMEZONE}
-    volumes:
-      - ./cron/crontab.txt:/crontab.txt
-      - ./cron/app:/home
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - PGPASSWORD=${POSTGRES_PASSWORD}
     depends_on:
       - psql

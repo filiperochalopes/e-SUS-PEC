@@ -9,3 +9,11 @@ client_secret_*.json
 credentials.json
 token.json
 venv
+*.class
+*.java
+pec.log
+*.deb
+docker-compose.npm.yml
+*.sql
+.env.external-db
+esus-jar/

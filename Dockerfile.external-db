@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp
 
 # Instalando java 8, pre-requisitos para instalação do sistema PEC
-RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add - 
+RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add -
 RUN add-apt-repository 'deb https://apt.corretto.aws stable main'
 RUN apt-get update && apt-get install -y java-1.8.0-amazon-corretto-jdk
 
@@ -25,32 +25,26 @@ RUN apt-get update && \
     rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG JAR_FILENAME
-ARG TRAINING
-ARG POSTGRES_USERNAME
-ARG POSTGRES_PASSWORD
-ARG POSTGRES_DATABASE
-ARG TIMEZONE
+ARG DB_URL
+ARG DB_PASS
+ARG DB_USER
 ARG DUMPFILE
-
-ENV JAR_FILENAME=${JAR_FILENAME}
-ENV DUMPFILE=${DUMPFILE}
-ENV TRAINING=${TRAINING}
-ENV POSTGRES_USERNAME=${POSTGRES_USERNAME}
-ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-ENV POSTGRES_DATABASE=${POSTGRES_DATABASE}
-ENV TIMEZONE=${TIMEZONE}
-
-RUN export JAR_FILENAME=${JAR_FILENAME}
 
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
+RUN if [ -f /etc/pec.config ]; then rm /etc/pec.config; fi
+
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./${DUMPFILE} ${DUMPFILE}
-COPY ./install.sh install.sh
-COPY ./run.sh run.sh
+COPY ./run-java.sh .
 
-RUN chmod +x /var/www/html/install.sh
-RUN chmod +x /var/www/html/run.sh
+# Copiando arquivos de backup
+COPY *.sql .
+COPY *.backup .
 
-CMD ["/bin/bash", "/var/www/html/run.sh"]
+RUN chmod +x ./run-java.sh
+RUN ./run-java.sh
+
+RUN chmod +x /opt/e-SUS/webserver/standalone.sh
+
+CMD ["/bin/bash", "-c", "/opt/e-SUS/webserver/standalone.sh > /proc/1/fd/1 2>&1"]
