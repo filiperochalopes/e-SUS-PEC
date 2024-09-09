@@ -4,6 +4,7 @@ __pycache__
 *.pyc
 *.backup
 .webassets-cache
+.vscode/
 .env
 client_secret_*.json
 credentials.json
@@ -17,3 +18,4 @@ docker-compose.npm.yml
 *.sql
 .env.external-db
 esus-jar/
+certificates/

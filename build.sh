@@ -115,10 +115,10 @@ else
 
     # Na hora de fazer o build não pode instalar os pacotes porque depende do banco de dados, por isso deve ser instalado por fora
     echo "${GREEN}Instalando pacotes do e-SUS-PEC${NC}"
-    docker exec -it esus_app bash -c "sh /var/www/html/install.sh"
+    docker compose exec -it pec bash -c "sh /var/www/html/install.sh"
     # Executando novamente o ENTRYPOINT do docker file, dessa vez com os pacotes já instalados.
     echo "${GREEN}Executando entrypoint do e-SUS-PEC${NC}"
-    docker exec -it esus_app bash -c "sh /var/www/html/run.sh"
+    docker compose exec -it pec bash -c "sh /var/www/html/run.sh"
 fi
 
 # Trabalhando com  certificados SSL
