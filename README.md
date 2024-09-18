@@ -10,7 +10,7 @@ Compatível e testado com
 Baixe o jar da aplicação e execute o script de instalação para um banco de dados novo, use o argumento `-t` se quiser que a versão instalada seja de treinamento:
 
 ```sh
-wget https://https://arquivos.esusab.ufsc.br/PEC/c0d1d77e70c98177/5.2.38/eSUS-AB-PEC-5.2.38-Linux64.jar
+wget https://arquivos.esusab.ufsc.br/PEC/c0d1d77e70c98177/5.2.38/eSUS-AB-PEC-5.2.38-Linux64.jar
 sh build.sh -f eSUS-AB-PEC-5.2.38-Linux64.jar
 ```
 
@@ -31,8 +31,9 @@ Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me
 2. [Preparando pacotes](#preparando-pacotes)
 3. [Instalação do PEC](#instalacao-pec)
 4. [Versão de Treinamento](#versao-treinamento)
-5. [Migração de Versão PEC](#migrando-versao)
-6. [Outras informações relevantes](#outros)
+5. [Certificado SSL](#certificado-ssl)
+6. [Migração de Versão PEC](#migrando-versao)
+7. [Outras informações relevantes](#outros)
 
 Ajude esse e outros projetos OpenSource para saúde: [Patrocínio](#patrocinio)
 
@@ -105,53 +106,21 @@ Apoie também esse e outros projetos.
   </a>
 </div>
 
-## Certificado SSL (Em processo de automatização)
+## Certificado SSL (Processo semi automatizado) <a id="certificado-ssl"></a>
 
 O certificado SSL é importante para podermos utilizar o 
 HTTPS (Habilita video chamadas e prescrição eletrônica, além de ser pré-requisito para login GOV.br). [Mais informações](https://saps-ms.github.io/Manual-eSUS_APS/docs/Apoio%20a%20Implanta%C3%A7%C3%A3o/Certificado_Https_Linux/)
 
+O métido utilizado para verificação do DNS é o DNS-1, vai ser necessário cadastrar um registro TXT no DNS, para isso fique atento ao prompt no terminal ao executar o primeiro passo abaixo:
+
 ```sh
 # https://github.com/filiperochalopes/e-SUS-PEC/issues/14
-make generate-ssl URL=https://meu-dominio.com EMAIL=meu-email@dominio.com
+make generate-ssl DNS=meu-dominio.com
+sudo chmod -R 755 ./certificates
+make install-ssl DNS=meu-dominio.com PASS=senha-certificado
 ```
 
-### Por enquanto 
-
-Vamos fazer manualmente o processo que se constitui em:
-
-1. Colocar o servidor para rodar na porta 80 (padrão vem 8080) e reiniciar container 
-
-```sh
-docker compose -f docker-compose.external-db.yml down pec
-docker compose -f docker-compose.external-db.yml up -d pec
-```
-
-2. Adquirir um certificado para seu domínio da forma que preferir (certbot/Let's Encrypt)
-3. Converter certificados em JKS
-
-```sh
-openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out keystore.p12 -name esuspec -CAfile chain.pem -caname root -password pass:mypass
-
-keytool -importkeystore -deststorepass mypass -destkeypass mypass -destkeystore keystore.jks -srckeystore keystore.p12 -srcstoretype PKCS12 -srcstorepass mypass -alias esuspec
-```
-4. Colocar o servidor para rodar na porta 443, alterando o o arquivo `/opt/e-SUS/webserver/config/application.properties`
-
-```sh
-spring.datasource.url=jdbc:postgresql://noharm-dev.cnonw4s4vx7j.sa-east-1.rds.amazonaws.com:5432/esus?ssl=true&sslmode=allow&sslfactory=org.postgresql.ssl.NonValidatingFactory
-spring.datasource.password=esus_pass
-spring.datasource.driverClassName=org.postgresql.Driver
-spring.datasource.username=esus_user
-server.port=443   
-# server.ssl.key-store-type=PKCS12  
-server.ssl.key-store=/opt/e-SUS/keystore.jks
-server.ssl.key-store-password=esus_pass
-server.ssl.key-alias=esuspec
-security.require-ssl=true
-```
-
-### [Atualização de certificados](https://github.com/filiperochalopes/e-SUS-PEC/issues/14)
-
-Ainda analisando como seria isso, e para automatizar, já que o processo de retornar para porta 80, rodar novamente o certbot e voltar para 443 poderia ser doloroso.
+Para renovar basta repetir o processo acima.
 
 ## Versão de Treinamento <a id="versao-treinamento"></a>
 

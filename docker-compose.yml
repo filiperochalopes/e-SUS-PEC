@@ -13,7 +13,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "${POSTGRESQL_PORT}:5432"
-  app:
+  pec:
     container_name: esus_app
     platform: linux/amd64
     restart: unless-stopped
@@ -24,7 +24,7 @@ services:
         - POSTGRES_DATABASE=${POSTGRES_DB}
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-        - TIMEZONE=${TIMEZONE}
+        - TZ=${TZ}
     stdin_open: true
     tty: true
     privileged: true
@@ -33,7 +33,10 @@ services:
       - ./run.sh:/var/www/html/run.sh
       - ./data/e-SUS:/opt/e-SUS
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ./certificates:/certificates
     ports:
       - "${APP_PORT}:8080"
+      - "80:80"
+      - "443:443"
     depends_on:
       - psql
