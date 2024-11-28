@@ -13,8 +13,8 @@ fi
 
 # A ser executado java -jar
 echo -e "${GREEN}\n\n*******************"
-echo "java -jar ${JAR_FILENAME} -console -url=${DB_URL} -username=${DB_USER} -password=${DB_PASS} ${ARGS} -continue"
+echo "java -jar ${JAR_FILENAME} -console -cert-domain=${HTTPS_DOMAIN} -url=${DB_URL} -username=${DB_USER} -password=${DB_PASS} ${ARGS} -continue"
 echo "*******************\n\n${NC}"
 
 # Executa o comando
-java -jar "${JAR_FILENAME}" -console -url="${DB_URL}" -username="${DB_USER}" -password="${DB_PASS}" ${ARGS} -continue
+java -jar ${JAR_FILENAME} -console -cert-domain=${HTTPS_DOMAIN} -url=${DB_URL} -username=${DB_USER} -password=${DB_PASS} ${ARGS} -continue

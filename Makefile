@@ -1,32 +1,60 @@
+# Define a variável do domínio
+DNS ?= pec.filipelopes.med.br
+
+# Target para gerar SSL
 generate-ssl:
-	# Verifica se a URL foi fornecida
-	@if [ -z "$(url)" ]; then \
-		echo "Erro: É necessário fornecer a URL."; \
-		exit 1; \
-	fi
+	docker run -it --rm --name certbot \
+		-v "./certificates:/etc/letsencrypt" \
+		-v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+		certbot/certbot certonly \
+		--manual --preferred-challenges dns \
+		-d $(DNS) \
+		--agree-tos --no-eff-email
 
-	# Verifica se o email foi fornecido
-	@if [ -z "$(email)" ]; then \
-		echo "Erro: É necessário fornecer o email."; \
-		exit 1; \
-	fi
+# Target para converter certificados para JKS e instalar no PEC
+install-ssl:
+	# Transformação de tipo de chave 
+	docker compose exec -it pec sh -c '\
+		mkdir -p /opt/e-SUS/webserver/chaves && \
+		# Criar PKCS#12 \
+		openssl pkcs12 -export -in /certificates/live/$(DNS)/fullchain.pem \
+		                -inkey /certificates/live/$(DNS)/privkey.pem \
+		                -out /opt/e-SUS/webserver/chaves/keystore.p12 \
+		                -name esuspec \
+		                -CAfile /certificates/live/$(DNS)/chain.pem \
+		                -caname root \
+		                -password pass:$(PASS) && \
+		# Converter PKCS#12 para JKS \
+		keytool -importkeystore -deststorepass $(PASS) \
+		        -destkeypass $(PASS) \
+		        -destkeystore /opt/e-SUS/webserver/chaves/keystore.jks \
+		        -srckeystore /opt/e-SUS/webserver/chaves/keystore.p12 \
+		        -srcstoretype PKCS12 \
+		        -srcstorepass $(PASS) \
+		        -alias esuspec \
+	'
 
-	# Criação do certificado SSL usando Certbot
-	docker compose exec -it nginx sh -c "certbot certonly --webroot -w /var/www/certbot -d $(url) --email $(email) --agree-tos --non-interactive"
+	# Colocando configurações no arquivo de configurações
+	docker compose exec -it pec sh -c '\
+		# Alterando porta \
+		sed -i "/^server.port=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.port=443" >> /opt/e-SUS/webserver/config/application.properties && \
+		# Alterando tipo de certificado \
+		sed -i "/^server.ssl.key-store-type=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.ssl.key-store-type=JKS" >> /opt/e-SUS/webserver/config/application.properties && \
+		# Alterando caminho do certificado \
+		sed -i "/^server.ssl.key-store=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.ssl.key-store=/opt/e-SUS/webserver/chaves/keystore.jks" >> /opt/e-SUS/webserver/config/application.properties && \
+		# Alterando senha do certificado \
+		sed -i "/^server.ssl.key-store-password=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.ssl.key-store-password=$(PASS)" >> /opt/e-SUS/webserver/config/application.properties && \
+		# Alterando alias do certificado \
+		sed -i "/^server.ssl.key-alias=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.ssl.key-alias=esuspec" >> /opt/e-SUS/webserver/config/application.properties && \
+		# Alterando flag de SSL \
+		sed -i "/^server.ssl.enabled=/d" /opt/e-SUS/webserver/config/application.properties && \
+		echo "server.ssl.enabled=true" >> /opt/e-SUS/webserver/config/application.properties \
+	'
 
-	# Colocar o certificado no nginx.conf
-	docker compose exec -it nginx sh -c "sed -i 's|# ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;|ssl_certificate /etc/letsencrypt/live/$(url)/fullchain.pem;|' /etc/nginx/nginx.conf"
-	docker compose exec -it nginx sh -c "sed -i 's|# ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;|ssl_certificate_key /etc/letsencrypt/live/$(url)/privkey.pem;|' /etc/nginx/nginx.conf"
-
-	# Reiniciar Nginx no container
-	docker compose exec -it nginx sh -c "nginx -s reload"
-
-	# Instalar certificado no PEC
-	docker compose exec -it pec sh -c "cp /etc/letsencrypt/live/$(url)/fullchain.pem /opt/e-SUSwebserver/config/"
-	docker compose exec -it pec sh -c "cp /etc/letsencrypt/live/$(url)/privkey.pem /opt/e-SUSwebserver/config/"
-	docker compose exec -it pec sh -c "sed -i '\$$a\server.port=443' /opt/e-SUSwebserver/config/application.properties"
-	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store-type=PKCS12' /opt/e-SUSwebserver/config/application.properties"
-	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store=/opt/e-SUSwebserver/config/fullchain.pem' /opt/e-SUSwebserver/config/application.properties"
-	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-store-password=REPLACE_WITH_PASSWORD' /opt/e-SUSwebserver/config/application.properties"
-	docker compose exec -it pec sh -c "sed -i '\$$a\server.ssl.key-alias=$(url)' /opt/e-SUSwebserver/config/application.properties"
-	docker compose exec -it pec sh -c "sed -i '\$$a\security.require-ssl=true' /opt/e-SUSwebserver/config/application.properties"
+# Target para executar todas as etapas
+all: generate-ssl install-ssl

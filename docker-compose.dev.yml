@@ -31,7 +31,7 @@ services:
         - POSTGRES_DATABASE=${POSTGRES_DB}
         - POSTGRES_USERNAME=${POSTGRES_USER}
         - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-        - TIMEZONE=${TIMEZONE}
+        - TZ=${TZ}
     stdin_open: true
     tty: true
     volumes:
