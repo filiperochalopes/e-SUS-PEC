@@ -14,8 +14,11 @@ venv
 *.java
 pec.log
 *.deb
+*.log
 docker-compose.npm.yml
 *.sql
 .env.external-db
-esus-jar/
+*entrypoint/
+nginx/
+esus-*/
 certificates/

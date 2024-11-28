@@ -12,13 +12,11 @@ services:
         - DB_USER=${POSTGRES_USER}
         - DB_PASS=${POSTGRES_PASSWORD}
         - DUMPFILE=${DUMPFILE}
+        - HTTPS_DOMAIN=${HTTPS_DOMAIN}
     stdin_open: true
     tty: true
-    volumes:
-      - ./data/pec:/opt/e-SUS
-      - ./nginx/certs:/etc/letsencrypt/live
     ports:
-      - "${APP_PORT}:8080"
+      - "80:80"
       - "443:443"
     extra_hosts:
       - "host.docker.internal:host-gateway"
