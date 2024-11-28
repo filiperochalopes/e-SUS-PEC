@@ -1,26 +1,29 @@
-# eSUS PEC
+<img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/docker-esus.png"/>
 
 Compatível e testado com  
  ![version](https://img.shields.io/badge/version-5.3.19-green)
 
-**BREAKING CHANGE:** Desde a versão 5.3 o certificado SSL é autogerenciado e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
+**BREAKING CHANGE:** Desde a versão 5.3 o [certificado SSL é autogerenciado](https://saps-ms.github.io/Manual-eSUS_APS/docs/%C3%9Altimas%20releases/Vers%C3%A3o%205.3/#novidades---ferramentas-administrativas) e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
 ## Instalação TD;LR
 
-Baixe o jar da aplicação e execute o script de instalação para um banco de dados novo, use o argumento `-t` se quiser que a versão instalada seja de treinamento:
+Esse script irá baixar [a versão mais recente do PEC](https://sisaps.saude.gov.br/esus/) e rodar em [docker](https://docs.docker.com/engine/install/ubuntu/) a versão de treinamento
 
 ```sh
-wget https://arquivos.esusab.ufsc.br/PEC/e925378f33a611e7/5.3.19/eSUS-AB-PEC-5.3.19-Linux64.jar
-sh build.sh -f eSUS-AB-PEC-5.2.38-Linux64.jar
+cp .env.exameple .env
+sh build.sh -d
 ```
+
+## Utilizando banco de dados externo
 
 Para execução com banco de dados externo:
 
-1. Configure as variáveis de ambiente disponíveis em `.env.external-db.example` colando em `.env.external-db`
+Configure as variáveis de ambiente disponíveis em `.env.example` depois de copiar para `.env`
 
 ```sh
+cp .env.example .env
 sh build.sh -e
 ```
 
