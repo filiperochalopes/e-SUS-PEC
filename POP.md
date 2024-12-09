@@ -57,7 +57,7 @@ Essa chave é necessária para envio e instalação da contra-chave do PEC, siga
 
 Siga as instruções para garantir a configuração correta para acessar a RNDS conforme descrito no manual (Seção 3.12): [Configuração de Acesso à RNDS](https://saps-ms.github.io/Manual-eSUS_APS/docs/PEC/PEC_03_adm_conf/#312-acessando-a-rnds-por-meio-do-pec).
 
-Com isso você terá um certificado digital do Município capaz de reconhecer a autenticidade da identidade, é necessário que, após o processo o certificado (arquivo *.pfx) seja instalado na pasta adequada da instalação. Para isso solicitamos que nos envie o arquivo por email.
+Com isso você terá um certificado digital do Município capaz de reconhecer a autenticidade da identidade, é necessário que, após o processo o certificado (arquivo *.pfx ou *.p12) seja instalado na pasta adequada da instalação. Para isso solicitamos que nos envie o arquivo por email.
 
 ### 4.3 Certificados HTTPS
 
