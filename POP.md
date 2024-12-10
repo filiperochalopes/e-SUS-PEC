@@ -22,6 +22,19 @@ Para migração do serviço PEC APS para outra infraestrutura, é necessário al
 
 ### Windows
 1. No PowerShell, crie o dump em formato **plain**:
+
+Segue um exemplo, lembre-se de trocar os paths de acordo com o seu ambiente:
+
+   ```powershell
+    PS C:\Program Files\e-SUS\database> .\postgresql-9.6.13-4-windows-x64\bin\psql.exe -p 5433 -U postgres
+
+    PS C:\Program Files\e-SUS\webserver\config> cat .\credenciais.txt
+
+    https://youtu.be/D_ATuuZ7ehg?feature=shared&t=44
+
+    PS C:\Users\PC\Desktop> & 'C:\Program Files\e-SUS\database\postgresql-9.6.13-4-windows-x64\bin\pg_dump.exe' -U postgres -p 5433 -d esus -F p > backup-helison-202412101132.sql
+    ```
+
    ```powershell
    pg_dump -U <usuario> -d <nome_do_banco> -F p > backup.sql
    ```
