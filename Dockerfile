@@ -2,12 +2,17 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Instalando fontes que o PEC utiliza para impressão
 RUN apt-get update && apt-get install -y \
     locales \
     && locale-gen "pt_BR.UTF-8" \
     && dpkg-reconfigure --frontend=noninteractive locales \
     && apt-get install -y \
-    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp
+    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp ttf-mscorefonts-installer fontconfig
+
+RUN fc-cache -fv
+
+RUN chmod -R 777 /usr/share/fonts/truetype/msttcorefonts
 
 # Instalando java 8, pre-requisitos para instalação do sistema PEC
 RUN wget -O- https://apt.corretto.aws/corretto.key | apt-key add - 
