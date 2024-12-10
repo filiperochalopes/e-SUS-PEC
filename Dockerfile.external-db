@@ -46,6 +46,7 @@ ENV DB_URL=${DB_URL}
 ENV DB_PASS=${DB_PASS}
 ENV DB_USER=${DB_USER}
 
+RUN mkdir -p /opt/e-SUS/webserver/chaves
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 

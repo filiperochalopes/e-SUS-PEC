@@ -4,6 +4,8 @@ services:
     platform: linux/amd64
     restart: unless-stopped
     env_file: .env.external-db
+    volumes:
+      - ./opt-esus:/opt/e-SUS
     build:
       context: .
       dockerfile: Dockerfile.external-db

@@ -23,3 +23,4 @@ docker-compose.npm.yml
 nginx/
 esus-*/
 certificates/
+opt-esus/
