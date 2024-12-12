@@ -30,9 +30,9 @@ Segue um exemplo, lembre-se de trocar os paths de acordo com o seu ambiente:
 
 ```powershell
 # Para verificar a senha de seu banco de dados
-cat C:\Program Files\e-SUS\webserver\config\credenciais.txt
+cat 'C:\Program Files\e-SUS\webserver\config\credenciais.txt'
 
-C:\Users\PC\Desktop> & 'C:\Program Files\e-SUS\database\postgresql-9.6.13-4-windows-x64\bin\pg_dump.exe' -U postgres -p 5433 -d esus -F p > backup.sql
+C:\Users\PC\Desktop> & 'C:\Program Files\e-SUS\database\postgresql-9.6.13-4-windows-x64\bin\pg_dump.exe' -U postgres -p 5433 -d esus -v | Tee-Object -FilePath backup.sql
 # O sistema irá peduir a senha
 ```
 
