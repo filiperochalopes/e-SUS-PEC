@@ -1,0 +1,19 @@
+services:
+  pec:
+    container_name: pec
+    platform: linux/amd64
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TZ=${TZ}
+    stdin_open: true
+    tty: true
+    privileged: true
+    volumes:
+      - ./data/e-SUS:/opt/e-SUS
+    ports:
+      - "${APP_PORT}:8080"
+      - "80:80"
+      - "443:443"
