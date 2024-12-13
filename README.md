@@ -1,31 +1,29 @@
-<img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/docker-esus.png"/>
+<img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/main/assets/img/docker-esus.png"/>
 
 Compatível e testado com  
  ![version](https://img.shields.io/badge/version-5.3.19-green)
 
-**BREAKING CHANGE:** Desde a versão 5.3 o [certificado SSL é autogerenciado](https://saps-ms.github.io/Manual-eSUS_APS/docs/%C3%9Altimas%20releases/Vers%C3%A3o%205.3/#novidades---ferramentas-administrativas) e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
-
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
+
+**BREAKING CHANGE:** Desde a versão 5.3 o [certificado SSL é autogerenciado](https://saps-ms.github.io/Manual-eSUS_APS/docs/%C3%9Altimas%20releases/Vers%C3%A3o%205.3/#novidades---ferramentas-administrativas) e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
 
 ## Instalação TD;LR
 
-Esse script irá baixar [a versão mais recente do PEC](https://sisaps.saude.gov.br/esus/) e rodar em [docker](https://docs.docker.com/engine/install/ubuntu/) a versão de treinamento
+Esse script irá baixar [a versão mais recente do PEC](https://sisaps.saude.gov.br/esus/) e rodar em [docker](https://docs.docker.com/engine/install/ubuntu/) a versão de treinamento por padrão. Edite o arquivo `.env` para configurar suas variáveis de ambiente e rode o script `build.sh`
 
 ```sh
-cp .env.exameple .env
-sh build.sh -d
+cp .env.development .env
+sh build.sh
 ```
 
-## Utilizando banco de dados externo
-
-Para execução com banco de dados externo:
-
-Configure as variáveis de ambiente disponíveis em `.env.example` depois de copiar para `.env`
+Para instalar a versão de produção em vez da de teste use esse comando, não esqueça de configurar suas variáveis de ambiente em `.env`
 
 ```sh
 cp .env.example .env
-sh build.sh -e
+sh build.sh -p
 ```
+
+Utilize `sh build.sh --help` para mais opções
 
 Acesse [Live/Demo](https://pec.filipelopes.med.br)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
@@ -96,7 +94,7 @@ Agradecimentos à equipe [NoHarm](https://noharm.ai/) que investiu nesse projeto
 
 <div align="center">
 
-<a href="https://noharm.ai/"><img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg" width="200"/></a>
+<a href="https://noharm.ai/"><img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/main/assets/img/noharm.svg" width="200"/></a>
 
 Apoie também esse e outros projetos.  
 

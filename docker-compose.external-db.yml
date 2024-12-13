@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./opt-esus:/opt/e-SUS
+      - ./backups:/backups
     build:
       context: .
       dockerfile: Dockerfile.external-db

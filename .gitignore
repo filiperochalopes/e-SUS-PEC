@@ -19,8 +19,10 @@ token.json
 venv
 pec.log
 docker-compose.npm.yml
-*entrypoint/
-nginx/
-esus-*/
+decompiled-java/
 certificates/
+*entrypoint/
 opt-esus/
+esus-*/
+nginx/
+jar-*/

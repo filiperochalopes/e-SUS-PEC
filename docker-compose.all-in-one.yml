@@ -3,17 +3,18 @@ services:
     container_name: pec
     platform: linux/amd64
     restart: unless-stopped
+    volumes:
+      - ./esus-data:/opt/e-SUS
+      - ./esus-backups:/backups
     build:
       context: .
       dockerfile: Dockerfile
       args:
         - TZ=${TZ}
+        - DUMPFILE=${DUMPFILE}
+        - HTTPS_DOMAIN=${HTTPS_DOMAIN}
     stdin_open: true
     tty: true
-    privileged: true
-    volumes:
-      - ./data/e-SUS:/opt/e-SUS
     ports:
-      - "${APP_PORT}:8080"
       - "80:80"
       - "443:443"

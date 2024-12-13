@@ -40,24 +40,28 @@ ARG DB_PASS
 ARG DB_USER
 ARG DUMPFILE
 
-# Promovendo ARGS para ENV
+# Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV DB_URL=${DB_URL}
 ENV DB_PASS=${DB_PASS}
 ENV DB_USER=${DB_USER}
 
+# criando diretórios para uso posterior
 RUN mkdir -p /opt/e-SUS/webserver/chaves
+RUN mkdir /backups
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
+# ATENÇÃO: Esse é um Dockerfile de instalação e não de atualização
+# Removendo arquivos de configuração anteriores, para instalar do zero. 
 RUN if [ -f /etc/pec.config ]; then rm /etc/pec.config; fi
 
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./run-java.sh .
+COPY ./install.sh .
 
 # Copiando arquivos de backup
-COPY *.sql .
-COPY *.backup .
+COPY *.sql /backups
+COPY *.backup /backups
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
