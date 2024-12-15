@@ -39,15 +39,16 @@ RUN apt-get update && \
 RUN mv /bin/ps /bin/ps.original && \
     echo '#!/bin/sh' > /bin/ps && \
     echo 'if [ "$1" = "--no-headers" ] && [ "$2" = "-o" ] && [ "$3" = "comm" ] && [ "$4" = "1" ]; then' >> /bin/ps && \
-    echo '    echo "systemd"' >> /bin/ps && \
+    echo '    echo "systemd (simulated: ps $@)"' >> /bin/ps && \
     echo 'else' >> /bin/ps && \
     echo '    /bin/ps.original "$@"' >> /bin/ps && \
     echo 'fi' >> /bin/ps && \
     chmod +x /bin/ps
 
 RUN echo '#!/bin/sh' > /bin/systemctl && \
+    echo 'echo "Simulated systemctl command: $0 $@"' >> /bin/systemctl && \
     echo 'case "$1" in' >> /bin/systemctl && \
-    echo '  start|stop|restart|status) ;;' >> /bin/systemctl && \
+    echo '  start|stop|restart|status) exit 0 ;;' >> /bin/systemctl && \
     echo '  *) echo "Simulated systemctl: $@"; exit 0 ;;' >> /bin/systemctl && \
     echo 'esac' >> /bin/systemctl && \
     chmod +x /bin/systemctl
