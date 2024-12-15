@@ -2,13 +2,15 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalando fontes que o PEC utiliza para impressão
+# Instalando fontes que o PEC utiliza para impressão: ttf-mscorefonts-installer (limitação de versão 5.3.19-5.3.21)
+# fontconfig para reinstalar fontes após modificação
+# coreutils para reconhecer arquitetura x64
 RUN apt-get update && apt-get install -y \
     locales \
     && locale-gen "pt_BR.UTF-8" \
     && dpkg-reconfigure --frontend=noninteractive locales \
     && apt-get install -y \
-    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp ttf-mscorefonts-installer fontconfig
+    coreutils wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp ttf-mscorefonts-installer fontconfig
 
 RUN fc-cache -fv
 
@@ -33,14 +35,38 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Substituir o comando `ps` para burlar a verificação de systemd
+RUN mv /bin/ps /bin/ps.original && \
+    echo '#!/bin/sh' > /bin/ps && \
+    echo 'if [ "$1" = "--no-headers" ] && [ "$2" = "-o" ] && [ "$3" = "comm" ] && [ "$4" = "1" ]; then' >> /bin/ps && \
+    echo '    echo "systemd"' >> /bin/ps && \
+    echo 'else' >> /bin/ps && \
+    echo '    /bin/ps.original "$@"' >> /bin/ps && \
+    echo 'fi' >> /bin/ps && \
+    chmod +x /bin/ps
+
+RUN echo '#!/bin/sh' > /bin/systemctl && \
+    echo 'case "$1" in' >> /bin/systemctl && \
+    echo '  start|stop|restart|status) ;;' >> /bin/systemctl && \
+    echo '  *) echo "Simulated systemctl: $@"; exit 0 ;;' >> /bin/systemctl && \
+    echo 'esac' >> /bin/systemctl && \
+    chmod +x /bin/systemctl
+
 ARG JAR_FILENAME
 ARG HTTPS_DOMAIN
+ARG DB_URL
+ARG DB_PASS
+ARG DB_USER
 ARG DUMPFILE
 ARG TRAINING
 
 # Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV TRAINING=${TRAINING}
+ENV DB_URL=${DB_URL}
+ENV DB_PASS=${DB_PASS}
+ENV DB_USER=${DB_USER}
+ENV HTTPS_DOMAIN=${HTTPS_DOMAIN}
 
 # criando diretórios para uso posterior
 RUN mkdir -p /opt/e-SUS/webserver/chaves

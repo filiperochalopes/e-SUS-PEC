@@ -171,10 +171,12 @@ if $use_external_db; then
     docker compose -f docker-compose.external-db.yml up -d
 else
     # Roda versão de treinamento
-    training='-treinamento'
+    # training='-treinamento'
+    training=''
+    jdbc_url="jdbc:postgresql://$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" 
     echo "\n\n*******************"
-    echo "docker compose --progress plain -f docker-compose.all-in-one.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training"
+    echo "docker compose --progress plain -f docker-compose.all-in-one.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg HTTPS_DOMAIN=$https_domain --build-arg DB_URL=$jdbc_url --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training"
     echo "*******************\n\n"
-    docker compose --progress plain -f docker-compose.all-in-one.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training
+    docker compose --progress plain -f docker-compose.all-in-one.yml build $cache --build-arg JAR_FILENAME=$jar_filename --build-arg HTTPS_DOMAIN=$https_domain --build-arg DB_URL=$jdbc_url --build-arg DUMPFILE=$dumpfile --build-arg TRAINING=$training
     docker compose -f docker-compose.all-in-one.yml up -d
 fi
