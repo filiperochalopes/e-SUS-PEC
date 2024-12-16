@@ -30,3 +30,5 @@ esac
 
 # Exibe o link encontrado
 echo "Link para download encontrado: $DOWNLOAD_URL"
+
+wget $DOWNLOAD_URL

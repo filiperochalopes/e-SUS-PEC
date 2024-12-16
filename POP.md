@@ -32,15 +32,11 @@ Segue um exemplo, lembre-se de trocar os paths de acordo com o seu ambiente:
 # Para verificar a senha de seu banco de dados
 cat 'C:\Program Files\e-SUS\webserver\config\credenciais.txt'
 
-C:\Users\PC\Desktop> & 'C:\Program Files\e-SUS\database\postgresql-9.6.13-4-windows-x64\bin\pg_dump.exe' -U postgres -p 5433 -d esus -v | Tee-Object -FilePath backup.sql
+C:\Users\PC\Desktop> & 'C:\Program Files\e-SUS\database\postgresql-9.6.13-4-windows-x64\bin\pg_dump.exe' -Fc -U postgres -p 5433 -d esus -v -f backup.dump
 # O sistema irá peduir a senha
 ```
 
-```powershell
-pg_dump -U <usuario> -d <nome_do_banco> -F p > backup.sql
-```
-
-2. Compacte o arquivo:
+1. Compacte o arquivo:
    - **ZIP**:
      ```powershell
      Compress-Archive -Path backup.sql -DestinationPath backup.zip
