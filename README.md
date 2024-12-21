@@ -1,30 +1,43 @@
-# eSUS PEC
+<img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/main/assets/img/docker-esus.png"/>
+
+🥳 **21/12/2024 - FINALMENTE ESTÁ FUNCIONANDO A VERSÃO DE TREINAMENTO**
+
+Sem certificado https para permitir o uso de LoadBalancer e redirecionamento de DNS com proxy e seus respectivos certificados
+
+```sh
+cd aws
+cp .env.example .env
+docker compose up -d --build
+```
 
 Compatível e testado com  
- ![version](https://img.shields.io/badge/version-5.3.19-green)
-
-**BREAKING CHANGE:** Desde a versão 5.3 o certificado SSL é autogerenciado e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
+ ![version](https://img.shields.io/badge/version-5.3.19-green) ![version](https://img.shields.io/badge/version-5.3.22-green)
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
 ## Instalação TD;LR
 
-Baixe o jar da aplicação e execute o script de instalação para um banco de dados novo, use o argumento `-t` se quiser que a versão instalada seja de treinamento:
+Esse script irá baixar [a versão mais recente do PEC](https://sisaps.saude.gov.br/esus/) e rodar em [docker](https://docs.docker.com/engine/install/ubuntu/) a versão de treinamento por padrão. Edite o arquivo `.env` para configurar suas variáveis de ambiente e rode o script `build.sh`
 
 ```sh
-wget https://arquivos.esusab.ufsc.br/PEC/e925378f33a611e7/5.3.19/eSUS-AB-PEC-5.3.19-Linux64.jar
-sh build.sh -f eSUS-AB-PEC-5.2.38-Linux64.jar
+cp .env.development .env
+sh build.sh
 ```
 
-Para execução com banco de dados externo:
+Para instalar a versão de produção em vez da de teste use esse comando, não esqueça de configurar suas variáveis de ambiente em `.env`
 
-1. Configure as variáveis de ambiente disponíveis em `.env.external-db.example` colando em `.env.external-db`
+```sh
+cp .env.example .env
+sh build.sh -p
+```
+
+Utilize `sh build.sh --help` para mais opções, por exemplo, para instalar a versão de produção combanco de dados externo após configuração `.env`
 
 ```sh
 sh build.sh -e
 ```
 
-Acesse [Live/Demo](https://pec.filipelopes.med.br)
+Acesse [Live/Demo](https://dev.esus.noharm.ai)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
 
 ## Sumário
@@ -33,9 +46,8 @@ Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me
 2. [Preparando pacotes](#preparando-pacotes)
 3. [Instalação do PEC](#instalacao-pec)
 4. [Versão de Treinamento](#versao-treinamento)
-5. [Certificado SSL](#certificado-ssl)
-6. [Migração de Versão PEC](#migrando-versao)
-7. [Outras informações relevantes](#outros)
+5. [Atualização/Migração de Versão PEC](#migrando-versao)
+6. [Outras informações relevantes](#outros)
 
 Ajude esse e outros projetos OpenSource para saúde: [Patrocínio](#patrocinio)
 
@@ -93,7 +105,7 @@ Agradecimentos à equipe [NoHarm](https://noharm.ai/) que investiu nesse projeto
 
 <div align="center">
 
-<a href="https://noharm.ai/"><img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/feature/noharm/assets/img/noharm.svg" width="200"/></a>
+<a href="https://noharm.ai/"><img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/main/assets/img/noharm.svg" width="200"/></a>
 
 Apoie também esse e outros projetos.  
 
@@ -107,22 +119,6 @@ Apoie também esse e outros projetos.
       <img src="https://img.shields.io/badge/Mande_uma_menssagem-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp Badge"/>
   </a>
 </div>
-
-## Certificado SSL (Processo semi automatizado) <a id="certificado-ssl"></a>
-
-O certificado SSL é importante para podermos utilizar o 
-HTTPS (Habilita video chamadas e prescrição eletrônica, além de ser pré-requisito para login GOV.br). [Mais informações](https://saps-ms.github.io/Manual-eSUS_APS/docs/Apoio%20a%20Implanta%C3%A7%C3%A3o/Certificado_Https_Linux/)
-
-O métido utilizado para verificação do DNS é o DNS-1, vai ser necessário cadastrar um registro TXT no DNS, para isso fique atento ao prompt no terminal ao executar o primeiro passo abaixo:
-
-```sh
-# https://github.com/filiperochalopes/e-SUS-PEC/issues/14
-make generate-ssl DNS=meu-dominio.com
-sudo chmod -R 755 ./certificates
-make install-ssl DNS=meu-dominio.com PASS=senha-certificado
-```
-
-Para renovar basta repetir o processo acima.
 
 ## Versão de Treinamento <a id="versao-treinamento"></a>
 
@@ -184,60 +180,24 @@ sudo cp data/backups/nome_do_arquivo.backup .
 Ou pode-se optar por fazer o backup pela própria ferramenta do PEC, use:
 
 ```sh
-java jar esus-pec.jar -help
+# substitua a versão pelo que estiver utilizando dentro do container pec
+docker compose exec -it pec java jar esus-pec.jar -help
 ```
 
 Para mais informações.
 
-2. Exclua todo o banco de dados e dados relacionados em volume
+2. Após isso, se seu banco de dados for externo, basta executar
 
 ```sh
-docker-compose down --remove-orphans --volumes
-sudo rm -rf data
+sh update.sh docker-compose.local-db.yml
 ```
 
-3. Crie o banco de dados
+Substitua o termo `docker-compose.local-db.yml` pelo termo `docker-compose.external-db.yml` para executar o script com o banco de dados externo.
 
-```sh
-docker-compose up -d psql
-```
 
-4. Copie o arquivo de backup
+## Bugs Conhecidos (Known Issues) / Troubleshoot / Q&A / FAQ <a id="outros"></a>
 
-```sh
-sudo cp nome_do_arquivo.backup data/backups/
-```
-
-5. Crie o banco de dados com base no backup
-
-```sh
-docker exec -it esus_psql bash
-pg_restore --verbose -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
-```
-
-6. Instale o programa
-
-Fora do container, na pasta raiz do projeto execute, substituindo o nome do pacote `eSUS-AB-PEC-5.0.8-Linux64.jar` para a versão que você vai instalar em sua máquina.
-
-```sh
-sh build.sh -f eSUS-AB-PEC-5.0.14-Linux64.jar
-```
-
-## Comandos interessantes <a id="outros"></a>
-
-Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser útil
-
-```sh
-# Em linux
-make run
-# Depois de rodar novamente os containers
-docker-compose up -d
-# Caso nenhum dos anteriores funcione execute diretamente o executável do sistema pec
-docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
-```
-
-## Bugs Conhecidos (Known Issues) / Troubleshoot / Q&A / FAQ
-
+- **BREAKING CHANGE:** Desde a versão 5.3 o [certificado SSL é autogerenciado](https://saps-ms.github.io/Manual-eSUS_APS/docs/%C3%9Altimas%20releases/Vers%C3%A3o%205.3/#novidades---ferramentas-administrativas) e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
 - O Java 8 só funciona com OpenSSL 1.1, em caso de uso do OpenSSL mais recente 3.X, não irá funcionar as chaves PKCS12 para SSL, será necessário o uso das chaves *.jks nesses casos
 - Testes realizados com versão `4.2.7` e `4.2.8` não foram bem sucedidos
 - A versão 4.2.8 está com erro no formulário de cadastro, nas requisições ao banco de dados, pelo endpoint graphql, retorna "Não autorizado"

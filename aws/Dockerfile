@@ -38,6 +38,38 @@ RUN apt-get update && \
 # Instalar cliente PostgreSQL
 RUN apt-get update && apt-get install -y postgresql-client
 
+# Criando diretórios para uso posterior
+RUN mkdir -p /opt/e-SUS/webserver/chaves
+RUN mkdir -p /var/www/html
+RUN mkdir /backups
+
+# Entrando no diretório de trabalho
+WORKDIR /var/www/html
+
+# Baixando o último PEC disponível
+RUN apt-get install -y curl && \
+    PAGE_URL="https://sisaps.saude.gov.br/esus/" && \
+    HTML_CONTENT=$(curl -s "$PAGE_URL") && \
+    DOWNLOAD_URL=$(echo "$HTML_CONTENT" | grep -o 'href="[^"]*Linux[^"]*' | sed 's/href="//' | head -1) && \
+    if [ -z "$DOWNLOAD_URL" ]; then \
+        echo "Erro: Link para download não encontrado."; \
+        exit 1; \
+    fi && \
+    case "$DOWNLOAD_URL" in \
+      http*) ;; \
+      *) BASE_URL=$(echo "$PAGE_URL" | sed -n 's#\(https\?://[^/]*\).*#\1#p'); \
+         DOWNLOAD_URL="$BASE_URL$DOWNLOAD_URL"; \
+    esac && \
+    echo "Link para download encontrado: $DOWNLOAD_URL" && \
+    JAR_FILENAME=$(basename "$DOWNLOAD_URL") && \
+    if [ -f "/var/www/html/$JAR_FILENAME" ]; then \
+        echo "O arquivo $JAR_FILENAME já existe e não será baixado novamente."; \
+    else \
+        wget -O "/var/www/html/$JAR_FILENAME" "$DOWNLOAD_URL"; \
+        echo "Download concluído: $JAR_FILENAME"; \
+    fi && \
+    echo "JAR_FILENAME=$JAR_FILENAME" > /etc/jar_install_filename
+
 # Substituir o comando `ps` para burlar a verificação de systemd
 RUN mv /bin/ps /bin/ps.original && \
     echo '#!/bin/sh' > /bin/ps && \
@@ -56,35 +88,14 @@ RUN echo '#!/bin/sh' > /bin/systemctl && \
     echo 'esac' >> /bin/systemctl && \
     chmod +x /bin/systemctl
 
-ARG JAR_FILENAME
-ARG HTTPS_DOMAIN
-ARG DB_URL
-ARG POSTGRES_PASS
-ARG POSTGRES_USER
-ARG TRAINING
-
-# Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint.sh e precisa dessas variáveis
-ENV JAR_FILENAME=${JAR_FILENAME}
-ENV TRAINING=${TRAINING}
-ENV DB_URL=${DB_URL}
-ENV POSTGRES_PASS=${POSTGRES_PASS}
-ENV POSTGRES_USER=${POSTGRES_USER}
-ENV HTTPS_DOMAIN=${HTTPS_DOMAIN}
-
-# criando diretórios para uso posterior
-RUN mkdir -p /opt/e-SUS/webserver/chaves
-RUN mkdir /backups
-RUN mkdir -p /var/www/html
-WORKDIR /var/www/html
-
-COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./install.sh .
-
 # Copiando arquivos de backup
 COPY *.sql /backups
 COPY *.backup /backups
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY ./install.sh .
+COPY ./entrypoint.sh .
+RUN chmod +x ./entrypoint.sh ./install.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN ls -la
+
+ENTRYPOINT ["/var/www/html/entrypoint.sh"]

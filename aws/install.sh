@@ -10,23 +10,19 @@ if [ -n "$POSTGRES_HOST" ] && [ -n "$POSTGRES_PORT" ] && [ -n "$POSTGRES_DB" ]; 
     DB_URL="jdbc:postgresql://$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
 fi
 
+# Captura JAR_FILENAME de /etc/jar_install_filename
+JAR_FILENAME=$(cat /etc/jar_install_filename | grep JAR_FILENAME | cut -d '=' -f2)
+
 # Echo das variáveis de ambiente
 echo -e "${GREEN}\n\n*******************"
 echo "Variáveis de ambiente:"
 echo "*******************"
-echo "HTTPS_DOMAIN: ${HTTPS_DOMAIN}"
 echo "DB_URL: ${DB_URL}"
 echo "POSTGRES_USER: ${POSTGRES_USER}"  
 echo "POSTGRES_PASS: ${POSTGRES_PASS}"
 echo "JAR_FILENAME: ${JAR_FILENAME}"
 echo "TRAINING: ${TRAINING}"
 echo "*******************\n\n${NC}"
-
-
-# Verificando variável de certificado https
-if [ -n "$HTTPS_DOMAIN" ]; then
-  ARGS="$ARGS -cert-domain=${HTTPS_DOMAIN}"
-fi
 
 # Verificando variáveis de banco de dados
 if [ -n "$DB_URL" ]; then
@@ -61,7 +57,7 @@ if [ -n "$TRAINING" ]; then
   # Executa o comando SQL
   eval $PSQL_CMD
   if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Configuração de treinamento aplicada com sucesso.${NC}"
+    echo -e "${GREEN}Configuração de treinamento aplicada com sucesso!${NC}"
   else
     echo -e "${RED}Erro ao aplicar configuração de treinamento.${NC}"
   fi

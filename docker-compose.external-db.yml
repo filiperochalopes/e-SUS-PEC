@@ -3,15 +3,16 @@ services:
     container_name: pec
     platform: linux/amd64
     restart: unless-stopped
-    env_file: .env.external-db
+    volumes:
+      - ./opt-esus:/opt/e-SUS
+      - ./backups:/backups
     build:
       context: .
       dockerfile: Dockerfile.external-db
       args:
         - TZ=${TZ}
-        - DB_USER=${POSTGRES_USER}
-        - DB_PASS=${POSTGRES_PASSWORD}
-        - DUMPFILE=${DUMPFILE}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASS=${POSTGRES_PASS}
         - HTTPS_DOMAIN=${HTTPS_DOMAIN}
     stdin_open: true
     tty: true

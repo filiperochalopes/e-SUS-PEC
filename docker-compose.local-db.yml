@@ -1,0 +1,41 @@
+services:
+  pec:
+    container_name: pec
+    platform: linux/amd64
+    restart: unless-stopped
+    volumes:
+      - ./esus-data/opt:/opt/e-SUS
+      - ./esus-data/backups:/backups
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TZ=${TZ}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASS=${POSTGRES_PASS:-pass}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db} # host.docker.internal
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB:-esus}
+    privileged: true
+    stdin_open: true
+    tty: true
+    ports:
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - db
+  db:
+    container_name: db
+    image: postgres:9.6-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS:-pass}
+      - POSTGRES_DB=${POSTGRES_DB:-esus}
+    volumes:
+      - ./esus-data/db:/var/lib/postgresql/data

@@ -2,12 +2,17 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Instalando fontes que o PEC utiliza para impressão
 RUN apt-get update && apt-get install -y \
     locales \
     && locale-gen "pt_BR.UTF-8" \
     && dpkg-reconfigure --frontend=noninteractive locales \
     && apt-get install -y \
-    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp
+    wget apt-utils gnupg2 software-properties-common file libfreetype6 ntp ttf-mscorefonts-installer fontconfig
+
+RUN fc-cache -fv
+
+RUN chmod -R 777 /usr/share/fonts/truetype/msttcorefonts
 
 # Adicionar chave pública diretamente da URL correta
 RUN wget -O - https://apt.corretto.aws/corretto.key | gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
@@ -31,27 +36,32 @@ RUN apt-get update && \
 ARG JAR_FILENAME
 ARG HTTPS_DOMAIN
 ARG DB_URL
-ARG DB_PASS
-ARG DB_USER
-ARG DUMPFILE
+ARG POSTGRES_PASS
+ARG POSTGRES_USER
 
-# Promovendo ARGS para ENV
+# Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV DB_URL=${DB_URL}
-ENV DB_PASS=${DB_PASS}
-ENV DB_USER=${DB_USER}
+ENV POSTGRES_PASS=${POSTGRES_PASS}
+ENV POSTGRES_USER=${POSTGRES_USER}
+ENV HTTPS_DOMAIN=${HTTPS_DOMAIN}
 
+# criando diretórios para uso posterior
+RUN mkdir -p /opt/e-SUS/webserver/chaves
+RUN mkdir /backups
 RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
+# ATENÇÃO: Esse é um Dockerfile de instalação e não de atualização
+# Removendo arquivos de configuração anteriores, para instalar do zero. 
 RUN if [ -f /etc/pec.config ]; then rm /etc/pec.config; fi
 
 COPY ./${JAR_FILENAME} ${JAR_FILENAME}
-COPY ./run-java.sh .
+COPY ./install.sh .
 
 # Copiando arquivos de backup
-COPY *.sql .
-COPY *.backup .
+COPY *.sql /backups
+COPY *.backup /backups
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -1,22 +1,6 @@
 #!/bin/bash
-set -e
 
-: '
-{
-  "success" : true,
-  "directory" : "/opt/e-SUS",
-  "version" : "5.3.19",
-  "production" : true,
-  "customDatabase" : true,
-  "databaseUrl" : "jdbc:postgresql://db:5432/esus",
-  "databaseUsername" : "postgres",
-  "databasePassword" : "pass",
-  "jreVersion" : "17.0.10-linux_x64",
-  "jreDirectory" : "/opt/e-SUS/jre/17.0.10-linux_x64",
-  "webserverVersion" : "5.3.19",
-  "webserverDirectory" : "/opt/e-SUS/webserver"
-}
-'
+set -e
 
 # Verifica se o sistema já foi instalado pela conferência da existência de um arquivo /etc/pec.config, caso não exista, instalar
 if [ ! -f /etc/pec.config ]; then
@@ -41,7 +25,6 @@ if [ -f "/etc/pec.config" ]; then
     # Se a instalação não foi bem-sucedida, exiba uma mensagem de erro
     echo ">> Erro: Instalação não foi bem-sucedida."
     echo ">> Tentando reinstalar sistema..."
-    chmod +x ./install.sh
     ./install.sh
     exit 1
   fi
