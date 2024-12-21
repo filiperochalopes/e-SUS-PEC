@@ -7,22 +7,15 @@ services:
       - ./esus-data/opt:/opt/e-SUS
       - ./esus-data/backups:/backups
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - TZ=${TZ}
-        - DB_USER=${POSTGRES_USER}
-        - DB_PASS=${POSTGRES_PASSWORD}
-        - DUMPFILE=${DUMPFILE}
-        - HTTPS_DOMAIN=${HTTPS_DOMAIN}
+    build: .
+    env_file: .env
     privileged: true
     stdin_open: true
     tty: true
     ports:
-      - "8080:8080"
-      - "80:80"
-      - "443:443"
+      - "${APP_PORT}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
   db:
@@ -30,8 +23,8 @@ services:
     image: postgres:9.6-alpine
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pass}
-      - POSTGRES_DB=${POSTGRES_DB:-esus}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ./esus-data/db:/var/lib/postgresql/data

@@ -16,7 +16,7 @@ UPDATE_SCRIPT_PATH="$WORKDIR/update.sh"
 DOCKER_COMPOSE_FILE=$1
 if [ -z "$DOCKER_COMPOSE_FILE" ]; then
     echo "Erro: É necessário informar o arquivo de configuração Docker Compose como argumento."
-    echo "Opções disponíveis: docker-compose.all-in-one.yml, docker-compose.external-db.yml"
+    echo "Opções disponíveis: docker-compose.local-db.yml, docker-compose.external-db.yml"
     exit 1
 fi
 
@@ -120,16 +120,3 @@ echo "Reiniciando o container..."
 docker compose -f "$DOCKER_COMPOSE_FILE" restart pec
 
 echo "Atualização concluida com sucesso!"
-
-
-# docker compose -f docker-compose.all-in-one.yml exec pec sh -c "
-#     set -e
-
-#     DB_NAME=\$(echo \"\$DB_URL\" | sed -n 's/.*:\/\/.*\/\\([^?]*\\).*/\\1/p')
-
-#     # Realiza o backup do banco de dados
-#     echo 'Verificando comando de backup antes de executar'
-#     echo \"env PGPASSWORD=\$DB_PASS pg_dump -Fc -v -h db -U \$DB_USER -d \$DB_NAME\"
-#     echo 'Realizando backup do banco de dados...'
-#     env PGPASSWORD=\$DB_PASS pg_dump -Fc -v -h db -U \$DB_USER -d \$DB_NAME  
-# "
