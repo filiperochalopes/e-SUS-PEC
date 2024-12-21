@@ -3,8 +3,8 @@
 # Variáveis de ambiente para o banco de dados
 # DB_URL="jdbc:postgresql://db:5432/esus"
 # DB_URL="jdbc:postgresql://db:5432/esus?ssl=true&sslmode=allow&sslfactory=org.postgresql.ssl.NonValidatingFactory"
-# DB_USER="postgres"
-# DB_PASS="pass"
+# POSTGRES_USER="postgres"
+# POSTGRES_PASS="pass"
 
 # Caminhos e URLs
 WORKDIR="/var/www/html"
@@ -96,7 +96,7 @@ docker compose -f "$DOCKER_COMPOSE_FILE" exec pec sh -c "
 
     # Realiza o backup do banco de dados
     echo 'Realizando backup do banco de dados...'
-    env PGPASSWORD=\$DB_PASS pg_dump -Fc -v -h db -U \$DB_USER -d \$DB_NAME -f $BACKUP_FILE 2> $LOG_FILE
+    env PGPASSWORD=\$POSTGRES_PASS pg_dump -Fc -v -h db -U \$POSTGRES_USER -d \$DB_NAME -f $BACKUP_FILE 2> $LOG_FILE
     echo \"Backup realizado em $BACKUP_FILE\"
 
     # Filtra apenas warnings e erros no log
@@ -112,7 +112,7 @@ docker compose -f "$DOCKER_COMPOSE_FILE" exec pec sh -c "
     # Atualiza o sistema
     echo 'Atualizando o sistema...'
     # Debugando comando de instalação
-    java -jar $WORKDIR/\$JAR_FILENAME -console -url=\$DB_URL -username=\$DB_USER -password=\$DB_PASS -continue
+    java -jar $WORKDIR/\$JAR_FILENAME -console -url=\$DB_URL -username=\$POSTGRES_USER -password=\$POSTGRES_PASS -continue
 "
 
 # Reinicia o container

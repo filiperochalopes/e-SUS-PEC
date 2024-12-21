@@ -11,8 +11,8 @@ services:
       dockerfile: Dockerfile.external-db
       args:
         - TZ=${TZ}
-        - DB_USER=${POSTGRES_USER}
-        - DB_PASS=${POSTGRES_PASSWORD}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASS=${POSTGRES_PASS}
         - HTTPS_DOMAIN=${HTTPS_DOMAIN}
     stdin_open: true
     tty: true

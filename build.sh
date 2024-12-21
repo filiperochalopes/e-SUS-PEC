@@ -34,7 +34,7 @@ while getopts "d:f:h:cpe" flag; do
         f) filename=${OPTARG} ;;
         h) https_domain=${OPTARG} ;;
         c) cache='--no-cache' ;;
-        p) production=true ;;
+        p) production=false ;;
         e) use_external_db=true ;;
         \?)
             echo "${RED}Opção inválida! Utilize --help para ajuda.${NC}"
@@ -42,6 +42,16 @@ while getopts "d:f:h:cpe" flag; do
             ;;
     esac
 done
+
+# Caso production seja false determina training para true
+if [ "$production" = false ]; then
+    training=true
+fi
+
+# Caso o banco de dados for externo modifica a variável logo para produção
+if [ "$use_external_db" = true ]; then
+    production=true
+fi
 
 # Define timeout para o Docker Compose
 export COMPOSE_HTTP_TIMEOUT=8000
@@ -108,7 +118,7 @@ if command -v psql > /dev/null; then
     if $use_external_db; then
         echo "Testando conexão com o banco de dados externo em $POSTGRES_HOST..."
         POSTGRES_HOST_FOR_TEST=$([ "$POSTGRES_HOST" = "host.docker.internal" ] && echo "localhost" || echo "$POSTGRES_HOST")
-        if PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST_FOR_TEST -U $POSTGRES_USER -p $POSTGRES_PORT -d $POSTGRES_DB -c '\q'; then
+        if PGPASSWORD=$POSTGRES_PASS psql -h $POSTGRES_HOST_FOR_TEST -U $POSTGRES_USER -p $POSTGRES_PORT -d $POSTGRES_DB -c '\q'; then
             echo "${GREEN}Conexão ao banco de dados externa bem-sucedida.${NC}"
         else
             echo "${RED}Falha ao conectar ao banco de dados externo. Verifique as credenciais.${NC}"
@@ -132,11 +142,14 @@ if $use_external_db; then
     docker compose -f docker-compose.external-db.yml up -d
 else
     jdbc_url="jdbc:postgresql://$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-    training=''
     echo "\n${GREEN}Construindo e subindo Docker com banco de dados local...${NC}"
-    docker compose --progress plain -f docker-compose.local-db.yml build $cache \
+    echo "docker compose --progress plain -f docker-compose.local-db.yml build $cache \
         --build-arg JAR_FILENAME=$jar_filename \
         --build-arg HTTPS_DOMAIN=$https_domain \
+        --build-arg DB_URL=$jdbc_url \
+        --build-arg TRAINING=$training"
+    docker compose --progress plain -f docker-compose.local-db.yml build $cache \
+        --build-arg JAR_FILENAME=$jar_filename \
         --build-arg DB_URL=$jdbc_url \
         --build-arg TRAINING=$training
     docker compose -f docker-compose.local-db.yml up -d

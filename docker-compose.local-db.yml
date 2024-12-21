@@ -12,9 +12,12 @@ services:
       dockerfile: Dockerfile
       args:
         - TZ=${TZ}
-        - DB_USER=${POSTGRES_USER}
-        - DB_PASS=${POSTGRES_PASSWORD}
-        - HTTPS_DOMAIN=${HTTPS_DOMAIN}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASS=${POSTGRES_PASS:-pass}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db} # host.docker.internal
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB:-esus}
     privileged: true
     stdin_open: true
     tty: true
@@ -32,7 +35,7 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pass}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS:-pass}
       - POSTGRES_DB=${POSTGRES_DB:-esus}
     volumes:
       - ./esus-data/db:/var/lib/postgresql/data

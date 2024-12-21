@@ -37,7 +37,7 @@ Utilize `sh build.sh --help` para mais opções, por exemplo, para instalar a ve
 sh build.sh -e
 ```
 
-Acesse [Live/Demo](https://pec.filipelopes.med.br)
+Acesse [Live/Demo](https://dev.esus.noharm.ai)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
 
 ## Sumário
@@ -180,59 +180,22 @@ sudo cp data/backups/nome_do_arquivo.backup .
 Ou pode-se optar por fazer o backup pela própria ferramenta do PEC, use:
 
 ```sh
-java jar esus-pec.jar -help
+# substitua a versão pelo que estiver utilizando dentro do container pec
+docker compose exec -it pec java jar esus-pec.jar -help
 ```
 
 Para mais informações.
 
-2. Exclua todo o banco de dados e dados relacionados em volume
+2. Após isso, se seu banco de dados for externo, basta executar
 
 ```sh
-docker-compose down --remove-orphans --volumes
-sudo rm -rf data
+sh update.sh docker-compose.local-db.yml
 ```
 
-3. Crie o banco de dados
+Substitua o termo `docker-compose.local-db.yml` pelo termo `docker-compose.external-db.yml` para executar o script com o banco de dados externo.
 
-```sh
-docker-compose up -d psql
-```
 
-4. Copie o arquivo de backup
-
-```sh
-sudo cp nome_do_arquivo.backup data/backups/
-```
-
-5. Crie o banco de dados com base no backup
-
-```sh
-docker exec -it esus_psql bash
-pg_restore --verbose -U "postgres" -d "esus" -1 /home/seu_arquivo.backup
-```
-
-6. Instale o programa
-
-Fora do container, na pasta raiz do projeto execute, substituindo o nome do pacote `eSUS-AB-PEC-5.0.8-Linux64.jar` para a versão que você vai instalar em sua máquina.
-
-```sh
-sh build.sh -f eSUS-AB-PEC-5.0.14-Linux64.jar
-```
-
-## Comandos interessantes <a id="outros"></a>
-
-Caso o container tenha sido interrompido sem querer, o comando abaixo pode ser útil
-
-```sh
-# Em linux
-make run
-# Depois de rodar novamente os containers
-docker-compose up -d
-# Caso nenhum dos anteriores funcione execute diretamente o executável do sistema pec
-docker-compose up -d esus_app /opt/e-SUS/webserver/standalone.sh
-```
-
-## Bugs Conhecidos (Known Issues) / Troubleshoot / Q&A / FAQ
+## Bugs Conhecidos (Known Issues) / Troubleshoot / Q&A / FAQ <a id="outros"></a>
 
 - **BREAKING CHANGE:** Desde a versão 5.3 o [certificado SSL é autogerenciado](https://saps-ms.github.io/Manual-eSUS_APS/docs/%C3%9Altimas%20releases/Vers%C3%A3o%205.3/#novidades---ferramentas-administrativas) e a versão Java utilizada é a 17 LTS. A última versão desse docker não funcionará para versões anteriores
 - O Java 8 só funciona com OpenSSL 1.1, em caso de uso do OpenSSL mais recente 3.X, não irá funcionar as chaves PKCS12 para SSL, será necessário o uso das chaves *.jks nesses casos

@@ -35,6 +35,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /usr/share/doc/* /usr/share/man/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Instalar cliente PostgreSQL
+RUN apt-get update && apt-get install -y postgresql-client
+
 # Substituir o comando `ps` para burlar a verificação de systemd
 RUN mv /bin/ps /bin/ps.original && \
     echo '#!/bin/sh' > /bin/ps && \
@@ -56,16 +59,16 @@ RUN echo '#!/bin/sh' > /bin/systemctl && \
 ARG JAR_FILENAME
 ARG HTTPS_DOMAIN
 ARG DB_URL
-ARG DB_PASS
-ARG DB_USER
+ARG POSTGRES_PASS
+ARG POSTGRES_USER
 ARG TRAINING
 
 # Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint.sh e precisa dessas variáveis
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV TRAINING=${TRAINING}
 ENV DB_URL=${DB_URL}
-ENV DB_PASS=${DB_PASS}
-ENV DB_USER=${DB_USER}
+ENV POSTGRES_PASS=${POSTGRES_PASS}
+ENV POSTGRES_USER=${POSTGRES_USER}
 ENV HTTPS_DOMAIN=${HTTPS_DOMAIN}
 
 # criando diretórios para uso posterior

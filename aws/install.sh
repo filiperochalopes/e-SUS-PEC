@@ -19,7 +19,7 @@ echo "Variáveis de ambiente:"
 echo "*******************"
 echo "DB_URL: ${DB_URL}"
 echo "POSTGRES_USER: ${POSTGRES_USER}"  
-echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}"
+echo "POSTGRES_PASS: ${POSTGRES_PASS}"
 echo "JAR_FILENAME: ${JAR_FILENAME}"
 echo "TRAINING: ${TRAINING}"
 echo "*******************\n\n${NC}"
@@ -33,8 +33,8 @@ if [ -n "$POSTGRES_USER" ]; then
   ARGS="$ARGS -username=${POSTGRES_USER}"
 fi
 
-if [ -n "$POSTGRES_PASSWORD" ]; then  
-  ARGS="$ARGS -password=${POSTGRES_PASSWORD}"
+if [ -n "$POSTGRES_PASS" ]; then  
+  ARGS="$ARGS -password=${POSTGRES_PASS}"
 fi
 
 # A ser executado java -jar
@@ -52,12 +52,12 @@ if [ -n "$TRAINING" ]; then
   PSQL_CMD="psql -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c \"update tb_config_sistema set ds_texto = null, ds_inteiro = 1 where co_config_sistema = 'TREINAMENTO';\""
   
   # Exporta a senha do banco para evitar o prompt
-  export PGPASSWORD="${POSTGRES_PASSWORD}"
+  export PGPASSWORD="${POSTGRES_PASS}"
 
   # Executa o comando SQL
   eval $PSQL_CMD
   if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Configuração de treinamento aplicada com sucesso.${NC}"
+    echo -e "${GREEN}Configuração de treinamento aplicada com sucesso!${NC}"
   else
     echo -e "${RED}Erro ao aplicar configuração de treinamento.${NC}"
   fi

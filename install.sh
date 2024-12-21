@@ -16,8 +16,8 @@ echo "Variáveis de ambiente:"
 echo "*******************"
 echo "HTTPS_DOMAIN: ${HTTPS_DOMAIN}"
 echo "DB_URL: ${DB_URL}"
-echo "DB_USER: ${DB_USER}"  
-echo "DB_PASS: ${DB_PASS}"
+echo "POSTGRES_USER: ${POSTGRES_USER}"  
+echo "POSTGRES_PASS: ${POSTGRES_PASS}"
 echo "JAR_FILENAME: ${JAR_FILENAME}"
 echo "TRAINING: ${TRAINING}"
 echo "*******************\n\n${NC}"
@@ -33,17 +33,12 @@ if [ -n "$DB_URL" ]; then
   ARGS="$ARGS -url=${DB_URL}" 
 fi
 
-if [ -n "$DB_USER" ]; then
-  ARGS="$ARGS -username=${DB_USER}"
+if [ -n "$POSTGRES_USER" ]; then
+  ARGS="$ARGS -username=${POSTGRES_USER}"
 fi
 
-if [ -n "$DB_PASS" ]; then  
-  ARGS="$ARGS -password=${DB_PASS}"
-fi
-
-# Verificando variável de treinamento e se não está vazio
-if [ -n "$TRAINING" ]; then
-  ARGS="$ARGS -treinamento"
+if [ -n "$POSTGRES_PASS" ]; then  
+  ARGS="$ARGS -password=${POSTGRES_PASS}"
 fi
 
 # A ser executado java -jar
@@ -58,10 +53,10 @@ java -jar ${JAR_FILENAME} -console ${ARGS} -continue
 # Verificando se a variável de treinamento existe, caso sim, executa o SQL
 if [ -n "$TRAINING" ]; then
   echo -e "${GREEN}Treinamento habilitado. Executando SQL de configuração...${NC}"
-  PSQL_CMD="psql -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${DB_USER} -d ${POSTGRES_DB} -c \"update tb_config_sistema set ds_texto = null, ds_inteiro = 1 where co_config_sistema = 'TREINAMENTO';\""
+  PSQL_CMD="psql -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c \"update tb_config_sistema set ds_texto = null, ds_inteiro = 1 where co_config_sistema = 'TREINAMENTO';\""
   
   # Exporta a senha do banco para evitar o prompt
-  export PGPASSWORD="${DB_PASS}"
+  export PGPASSWORD="${POSTGRES_PASS}"
 
   # Executa o comando SQL
   eval $PSQL_CMD
