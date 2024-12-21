@@ -1,7 +1,15 @@
 <img src="https://github.com/filiperochalopes/e-SUS-PEC/blob/main/assets/img/docker-esus.png"/>
 
+🥳 **21/12/2024 - FINALMENTE ESTÁ FUNCIONANDO A VERSÃO DE TREINAMENTO**
+
+```sh
+cd aws
+cp .env.example .env
+docker compose up -d --build
+```
+
 Compatível e testado com  
- ![version](https://img.shields.io/badge/version-5.3.19-green)
+ ![version](https://img.shields.io/badge/version-5.3.19-green) ![version](https://img.shields.io/badge/version-5.3.22-green)
 
 É um sistema bastante utilizado por profissionais de saúde da Atenção Básica para registros de pacientes e dados de saúde. Esse repositório se propõe a criar uma estrutura docker com linux para viabilizar o deploy do sistema em qualquer ambiente que tenha docker e facilitar a instalação e atualização do sistema [e-SUS PEC](https://sisaps.saude.gov.br/esus/)
 
@@ -23,7 +31,11 @@ cp .env.example .env
 sh build.sh -p
 ```
 
-Utilize `sh build.sh --help` para mais opções
+Utilize `sh build.sh --help` para mais opções, por exemplo, para instalar a versão de produção combanco de dados externo após configuração `.env`
+
+```sh
+sh build.sh -e
+```
 
 Acesse [Live/Demo](https://pec.filipelopes.med.br)
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
