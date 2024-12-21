@@ -8,7 +8,6 @@ NC='\033[0m' # No Color
 # Variáveis iniciais
 cache=''
 filename=''
-dumpfile=''
 https_domain=''
 use_external_db=false
 production=false
@@ -18,11 +17,10 @@ if [ "$1" = "--help" ]; then
     echo "
     Script para instalação do PEC
 
-    Uso: build.sh [-f <nome do arquivo ou URL>] [-d <dump de banco de dados>] [-h <domínio HTTPS>] [-c] [-p] [-e]
+    Uso: build.sh [-f <nome do arquivo ou URL>] [-h <domínio HTTPS>] [-c] [-p] [-e]
 
     -f {nome do arquivo ou URL} para especificar o arquivo JAR a ser utilizado (busca o último se não informado)
     -c para utilizar cache ao construir as imagens Docker
-    -d {dump de banco de dados} para especificar o dump a ser utilizado
     -h {domínio HTTPS} para gerar o certificado
     -p para instalar em ambiente de produção
     -e para utilizar banco de dados externo especificado em .env
@@ -34,7 +32,6 @@ fi
 while getopts "d:f:h:cpe" flag; do
     case "${flag}" in
         f) filename=${OPTARG} ;;
-        d) dumpfile=${OPTARG} ;;
         h) https_domain=${OPTARG} ;;
         c) cache='--no-cache' ;;
         p) production=true ;;
@@ -55,7 +52,6 @@ if [ -f ".env" ]; then
     export $(grep -v '^#' .env | xargs)
     filename=${filename:-$FILENAME}
     https_domain=${https_domain:-$HTTPS_DOMAIN}
-    dumpfile=${dumpfile:-$DUMPFILE}
     echo "${GREEN}Arquivo .env carregado com sucesso.${NC}"
 else
     echo "${RED}Arquivo .env não encontrado.${NC}"
@@ -142,7 +138,6 @@ else
         --build-arg JAR_FILENAME=$jar_filename \
         --build-arg HTTPS_DOMAIN=$https_domain \
         --build-arg DB_URL=$jdbc_url \
-        --build-arg DUMPFILE=$dumpfile \
         --build-arg TRAINING=$training
     docker compose -f docker-compose.local-db.yml up -d
 fi

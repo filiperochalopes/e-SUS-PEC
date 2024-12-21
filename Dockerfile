@@ -58,10 +58,9 @@ ARG HTTPS_DOMAIN
 ARG DB_URL
 ARG DB_PASS
 ARG DB_USER
-ARG DUMPFILE
 ARG TRAINING
 
-# Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint
+# Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint.sh e precisa dessas variáveis
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV TRAINING=${TRAINING}
 ENV DB_URL=${DB_URL}

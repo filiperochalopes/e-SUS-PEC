@@ -21,7 +21,6 @@ echo "DB_URL: ${DB_URL}"
 echo "POSTGRES_USER: ${POSTGRES_USER}"  
 echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}"
 echo "JAR_FILENAME: ${JAR_FILENAME}"
-echo "DUMPFILE: ${DUMPFILE}"
 echo "TRAINING: ${TRAINING}"
 echo "*******************\n\n${NC}"
 
@@ -36,11 +35,6 @@ fi
 
 if [ -n "$POSTGRES_PASSWORD" ]; then  
   ARGS="$ARGS -password=${POSTGRES_PASSWORD}"
-fi
-
-# Construa os argumentos para o comando
-if [ -n "$DUMPFILE" ]; then
-  ARGS="-restore=/backups/${DUMPFILE}"
 fi
 
 # A ser executado java -jar

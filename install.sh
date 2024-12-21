@@ -19,7 +19,6 @@ echo "DB_URL: ${DB_URL}"
 echo "DB_USER: ${DB_USER}"  
 echo "DB_PASS: ${DB_PASS}"
 echo "JAR_FILENAME: ${JAR_FILENAME}"
-echo "DUMPFILE: ${DUMPFILE}"
 echo "TRAINING: ${TRAINING}"
 echo "*******************\n\n${NC}"
 
@@ -40,11 +39,6 @@ fi
 
 if [ -n "$DB_PASS" ]; then  
   ARGS="$ARGS -password=${DB_PASS}"
-fi
-
-# Construa os argumentos para o comando
-if [ -n "$DUMPFILE" ]; then
-  ARGS="-restore=/backups/${DUMPFILE}"
 fi
 
 # Verificando variável de treinamento e se não está vazio

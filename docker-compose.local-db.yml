@@ -14,7 +14,6 @@ services:
         - TZ=${TZ}
         - DB_USER=${POSTGRES_USER}
         - DB_PASS=${POSTGRES_PASSWORD}
-        - DUMPFILE=${DUMPFILE}
         - HTTPS_DOMAIN=${HTTPS_DOMAIN}
     privileged: true
     stdin_open: true

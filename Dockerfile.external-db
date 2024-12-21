@@ -38,7 +38,6 @@ ARG HTTPS_DOMAIN
 ARG DB_URL
 ARG DB_PASS
 ARG DB_USER
-ARG DUMPFILE
 
 # Promovendo ARGS para ENV para uso no install.sh que roda dentro do entrypoint
 ENV JAR_FILENAME=${JAR_FILENAME}
