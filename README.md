@@ -37,7 +37,7 @@ Utilize `sh build.sh --help` para mais opções, por exemplo, para instalar a ve
 sh build.sh -e
 ```
 
-Acesse [Live/Demo](https://dev.esus.noharm.ai) Usuário: 969.744.190-15 Senha: senha123
+Acesse [Live/Demo](https://dev.esus.noharm.ai) **Usuário:** 969.744.190-15 **Senha:** senha123  
 Dúvidas? Colaboração? Ideias? Entre em contato pelo [WhatsApp](https://wa.me/5571986056232?text=Gostaria+de+informa%C3%A7%C3%B5es+sobre+o+projeto+PEC+SUS)
 
 ## Sumário
