@@ -1,0 +1,22 @@
+services:
+  painel:
+    image: "painelsaudefiocruz/painel-esus:0.9"
+    environment:
+      RELOAD_BASE_SCHELDULE: '4:00'
+      DB_HOST: ${DB_HOST:-localhost}
+      DB_USER: ${DB_USER:-esus_leitura}
+      DB_PASSWORD: ${DB_PASS} 
+      DB_PORT: ${DB_PORT:-5433}
+      DB_DATABASE: ${DB_NAME:-esus}
+      CIDADE_IBGE: ${CIDADE_IBGE}
+      ESTADO: ${ESTADO}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      POPULATION: ${POPULATION}
+      SECRET_TOKEN: ${SECRET_TOKEN}
+      PASSWORD_SALT: ${PASSWORD_SALT}
+      BRIDGE_LOGIN_URL: ${BRIDGE_LOGIN_URL}
+      ENV: linux
+      GENERATE_BASE: 'True'
+    ports:
+      - ${APP_PORT}:5001
