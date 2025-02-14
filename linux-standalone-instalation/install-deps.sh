@@ -4,6 +4,8 @@ sudo apt-get update && sudo apt-get install -y \
     locales coreutils wget apt-utils gnupg2 software-properties-common \
     file libfreetype6 ntp ttf-mscorefonts-installer fontconfig
 
+sudo timedatectl set-timezone America/Sao_Paulo
+
 sudo fc-cache -fv
 sudo chmod -R 777 /usr/share/fonts/truetype/msttcorefonts
 
