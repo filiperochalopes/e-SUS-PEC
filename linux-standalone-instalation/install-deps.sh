@@ -14,5 +14,13 @@ echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corre
 
 sudo apt-get update && sudo apt-get install -y java-17-amazon-corretto-jdk
 
-export JAVA_TOOL_OPTIONS="-Duser.timezone=America/Bahia"
-echo 'export JAVA_TOOL_OPTIONS="-Duser.timezone=America/Bahia"' >> ~/.bashrc
+export JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"
+echo 'export JAVA_TOOL_OPTIONS="-Duser.timezone=America/Sao_Paulo"' >> ~/.bashrc
+
+# A forma de utilizar JAVA_TOOL_OPTIONS não parece que deu muito certo nas versões instaladas, segue abaixo sugestão do Laboratório Bridge
+sed -i '$d' ~/.bashrc # Removendo a linha que foi acrescentada no último comando
+
+echo "America/Sao_Paulo" | sudo tee /etc/timezone
+sudo ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && date
+
+sudo reboot
