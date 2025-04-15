@@ -10,13 +10,29 @@ Você deve ter o Docker e Docker Composer instalado na máquina para funcionar
 cp .env.example .env
 ```
 
-O código do IBGE do seu município você pode consultas [nesse link]
-(https://www.ibge.gov.br/explica/codigos-dos-municipios.php)
+O código do IBGE do seu município você pode consultas [nesse link](https://www.ibge.gov.br/explica/codigos-dos-municipios.php)
 
 ```sh
 docker compose up -d
 ```
 
+## Gerando credenciais
+
+```bash
+# Gera ADMIN_PASSWORD com 12 caracteres
+ADMIN_PASSWORD=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)
+
+# Gera SECRET_TOKEN com 22 caracteres
+SECRET_TOKEN=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 22)
+
+# Gera PASSWORD_SALT fake (formato visual de bcrypt: $2a$12$[22 chars])
+PASSWORD_SALT='$2a$12$'$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 22)
+
+# Exibe os resultados
+echo "ADMIN_PASSWORD='$ADMIN_PASSWORD'"
+echo "SECRET_TOKEN=$SECRET_TOKEN"
+echo "PASSWORD_SALT='$PASSWORD_SALT'"
+```
 
 ## Recomendações
 
