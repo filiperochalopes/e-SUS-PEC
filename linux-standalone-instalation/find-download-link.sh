@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# ======================================== #
+#       ========= ATENÇÃO =========        #
+# Depois da atualização do site com botões #
+#  genérico, não é mais possível utilizar  #
+#        esse script. [Deprecated]         #
+# ======================================== #
+
 # URL da página onde está o link
 PAGE_URL="https://sisaps.saude.gov.br/esus/"
 
