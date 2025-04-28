@@ -1,6 +1,7 @@
 services:
   painel:
-    image: "painelsaudefiocruz/painel-esus:0.9"
+    # https://hub.docker.com/r/painelsaudefiocruz/painel-esus/tags
+    image: "painelsaudefiocruz/painel-esus:0.9.3"
     environment:
       RELOAD_BASE_SCHELDULE: '4:00'
       DB_HOST: ${DB_HOST:-localhost}

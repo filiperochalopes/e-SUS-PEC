@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -47,19 +47,14 @@ RUN mkdir /backups
 WORKDIR /var/www/html
 
 # Baixando o último PEC disponível
-RUN apt-get install -y curl && \
-    PAGE_URL="https://sisaps.saude.gov.br/esus/" && \
-    HTML_CONTENT=$(curl -s "$PAGE_URL") && \
-    DOWNLOAD_URL=$(echo "$HTML_CONTENT" | grep -o 'href="[^"]*Linux[^"]*' | sed 's/href="//' | head -1) && \
-    if [ -z "$DOWNLOAD_URL" ]; then \
+RUN apt-get update && apt-get install -y curl jq && \
+    ENDPOINT_URL="https://n8n.adri.orango.io/webhook/b1b09703-6eff-42cc-a2a2-8affd46debd3" && \
+    JSON_RESPONSE=$(curl -s "$ENDPOINT_URL") && \
+    DOWNLOAD_URL=$(echo "$JSON_RESPONSE" | jq -r '.link_linux') && \
+    if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then \
         echo "Erro: Link para download não encontrado."; \
         exit 1; \
     fi && \
-    case "$DOWNLOAD_URL" in \
-      http*) ;; \
-      *) BASE_URL=$(echo "$PAGE_URL" | sed -n 's#\(https\?://[^/]*\).*#\1#p'); \
-         DOWNLOAD_URL="$BASE_URL$DOWNLOAD_URL"; \
-    esac && \
     echo "Link para download encontrado: $DOWNLOAD_URL" && \
     JAR_FILENAME=$(basename "$DOWNLOAD_URL") && \
     if [ -f "/var/www/html/$JAR_FILENAME" ]; then \

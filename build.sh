@@ -70,23 +70,16 @@ fi
 
 # Busca o link do arquivo JAR, caso não especificado
 if [ -z "$filename" ]; then
-    echo "${GREEN}Buscando link de instalação na página do PEC...${NC}"
-    PAGE_URL="https://sisaps.saude.gov.br/esus/"
-    HTML_CONTENT=$(curl -s "$PAGE_URL")
-    DOWNLOAD_URL=$(echo "$HTML_CONTENT" | grep -o 'href="[^"]*Linux[^"]*' | sed 's/href="//' | head -1)
+    echo "${GREEN}Buscando link de instalação via endpoint...${NC}"
+    
+    ENDPOINT_URL="https://n8n.adri.orango.io/webhook/b1b09703-6eff-42cc-a2a2-8affd46debd3"
+    JSON_RESPONSE=$(curl -s "$ENDPOINT_URL")
+    DOWNLOAD_URL=$(echo "$JSON_RESPONSE" | jq -r '.link_linux')
 
-    if [ -z "$DOWNLOAD_URL" ]; then
+    if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
         echo "${RED}Erro: Link para download não encontrado.${NC}"
         exit 1
     fi
-
-    case "$DOWNLOAD_URL" in
-        http*) ;;
-        *) 
-            BASE_URL=$(echo "$PAGE_URL" | sed -n 's#\(https\?://[^/]*\).*#\1#p')
-            DOWNLOAD_URL="$BASE_URL$DOWNLOAD_URL"
-            ;;
-    esac
 
     echo "${GREEN}Link para download encontrado: $DOWNLOAD_URL${NC}"
     filename="$DOWNLOAD_URL"
