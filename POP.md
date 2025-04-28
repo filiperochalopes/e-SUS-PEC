@@ -108,6 +108,13 @@ Atenciosamente,
 [Nome do Responsável pela Solicitação]
 ```
 
+Após isso realizar uma solicitação por e-mail para cadastro das credenciais na aplicação `/opt/eSUS/webserver/config/application.properties` adicionando:
+
+```txt
+bridge.security.oauth2.client.registration.govbr.client-id=ClientID
+bridge.security.oauth2.client.registration.govbr.client-secret=ClientSecret
+```
+
 ### 5.2 Solicitação para ativação da Prescrição Digital
 
 A solicitação de ativação deverá ser feita através de um ticket de suporte que deverá ser criado pela equipe responsável pela instalação na Plataforma de suporte https://esusaps.freshdesk.com segundo padrão abaixo:
