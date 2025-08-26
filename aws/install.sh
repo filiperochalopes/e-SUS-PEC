@@ -46,8 +46,8 @@ echo "*******************\n\n${NC}"
 java -jar ${JAR_FILENAME} -console ${ARGS} -continue
 
 
-# Verificando se a variável de treinamento existe, caso sim, executa o SQL
-if [ -n "$TRAINING" ]; then
+# Verifica se o treinamento está habilitado
+if [ "$TRAINING" = "true" ] || [ "$TRAINING" = "TRUE" ]; then
   echo -e "${GREEN}Treinamento habilitado. Executando SQL de configuração...${NC}"
   PSQL_CMD="psql -h ${POSTGRES_HOST} -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c \"update tb_config_sistema set ds_texto = null, ds_inteiro = 1 where co_config_sistema = 'TREINAMENTO';\""
   
