@@ -71,12 +71,21 @@ ARG DB_URL
 ARG POSTGRES_PASS
 ARG POSTGRES_USER
 ARG TRAINING
+ARG TZ
 
 # Promovendo ARGS para ENV para uso no script de instalação executado pelo entrypoint
 ENV JAR_FILENAME=${JAR_FILENAME}
 ENV TRAINING=${TRAINING}
 ENV DB_URL=${DB_URL}
 ENV POSTGRES_PASS=${POSTGRES_PASS}
+ENV TZ=${TZ}
+
+# Aplicando o timezone no sistema: o ARG TZ chegava ao build mas nunca era
+# consumido, então o container ficava preso em UTC independente do .env.
+RUN apt-get update && apt-get install -y tzdata \
+    && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo ${TZ} > /etc/timezone \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV POSTGRES_USER=${POSTGRES_USER}
 ENV HTTPS_DOMAIN=${HTTPS_DOMAIN}
 
