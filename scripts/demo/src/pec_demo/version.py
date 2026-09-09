@@ -9,4 +9,4 @@ invoked outside that script (manual/dev runs).
 
 from __future__ import annotations
 
-DEFAULT_PEC_VERSION = "5.5.24"
+DEFAULT_PEC_VERSION = "5.5.28"

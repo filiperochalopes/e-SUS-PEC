@@ -42,6 +42,7 @@ cnes.xml
 !docs/*.md
 !scripts/demo/docs/*.md
 !scripts/demo/prompts/*.md
+docs/cloud-mcp-access.md
 scripts/demo/demo_credentials.txt
 scripts/demo/output/
 scripts/demo/.venv/

@@ -98,6 +98,8 @@ O fluxo executável para a versão ativa do pack já:
 - alterna medições completas, parciais e ausentes e inclui prescrições
   estruturadas, inclusive medicamentos de uso contínuo nas crônicas;
 - alterna entre duas UBS, duas equipes e os CBOs `225130` e `223505`;
+- distribui os dez cidadãos entre as duas equipes e as microáreas `01`, `02`
+  e `03`, usando a mutation oficial de cadastro territorial;
 - publica um manifesto clínico para tornar a geração repetível;
 - produz um backup completo restaurável pelo `make restore`.
 

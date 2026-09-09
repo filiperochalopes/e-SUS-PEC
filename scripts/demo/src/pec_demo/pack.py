@@ -7,7 +7,7 @@ from datetime import date
 import json
 from pathlib import Path
 
-from pec_demo.citizens import provision_citizens
+from pec_demo.citizens import TerritoryAssignment, provision_citizens
 from pec_demo.clinical import (
     ClinicalAssignment,
     DOCTOR_CBO,
@@ -144,6 +144,19 @@ def refresh_demo_pack(
         cnes=medical_unit.cnes,
         ine=medical_team.ine,
         cbo2002=DOCTOR_CBO,
+        territory_assignments=(
+            TerritoryAssignment(
+                cnes=medical_unit.cnes,
+                ine=medical_team.ine,
+                cbo2002=DOCTOR_CBO,
+            ),
+            TerritoryAssignment(
+                cnes=nursing_unit.cnes,
+                ine=nursing_unit.teams[0].ine,
+                cbo2002=NURSE_CBO,
+            ),
+        ),
+        update_existing_territory=True,
     )
     histories = provision_clinical_histories(
         cohort,

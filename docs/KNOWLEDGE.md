@@ -603,3 +603,12 @@ Inspeção realizada somente sobre metadados com `db-schema.sh`,
   de acumular uma pasta por release), com checksum e `pec_version` em
   `pack.json` e armazenamento Git LFS. O script recusa publicar dentro da
   pasta do pack e usa nomes temporários por execução.
+
+## Microárea no cadastro territorial
+
+`VinculacaoCidadaoTerritorioInput` aceita a propriedade GraphQL `microarea`
+(além de `cnes`, `ine`, `cns`, `cbo2002` e `foraDeArea`).
+`CidadaoConverter` encaminha esse valor à FCI como `microArea`, de modo que a
+atribuição territorial deve usar a mutation `salvarCidadao`, e não uma escrita
+direta em `tb_cidadao` ou tabelas de fatos. A listagem do MCP deriva as
+microáreas ativas de `tb_fat_cad_individual.nu_micro_area` por equipe.
