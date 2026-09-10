@@ -46,9 +46,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASS}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_INITDB_ARGS=--auth-host=md5
+      - ESUS_LEITURA_PASS=${ESUS_LEITURA_PASS:?Defina ESUS_LEITURA_PASS em cloud/.env}
     volumes:
       - esus-db-data:/var/lib/postgresql/data
       - ./esus-data/backups:/backups:ro
+      - ./db-entrypoint:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s

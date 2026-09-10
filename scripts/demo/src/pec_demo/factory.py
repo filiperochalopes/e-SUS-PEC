@@ -58,6 +58,7 @@ def build_demo_dataset(
     cep: str,
     generated_on: date,
     pec_version: str = DEFAULT_PEC_VERSION,
+    include_acs: bool = False,
 ) -> DemoDataset:
     """Create two units, two teams, three professionals and four assignments."""
     rng = Random(seed)
@@ -159,6 +160,14 @@ def build_demo_dataset(
             ("ENFERMEIRO",),
         ),
     )
+
+    if include_acs:
+        roles += tuple(
+            (f"acs_{i + 1}", "F", 30, 45,
+             (Assignment(cnes=unit.cnes, ine=unit.teams[0].ine, cbo="515105"),),
+             ("AGENTE_COMUNITARIO_SAUDE",))
+            for i, unit in enumerate((unit_1, unit_2))
+        )
 
     professionals: list[Professional] = []
     for key, sex, min_age, max_age, assignments, profiles in roles:

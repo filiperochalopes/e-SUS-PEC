@@ -235,21 +235,7 @@ CNES_ARCHIVE_TEMP="$CNES_ARCHIVE.$PROJECT_NAME.tmp"
 
 mkdir -p "$DEMO_BACKUP_DIR" "$DEMO_OPT_DIR"
 cp "$BASE_BACKUP" "$DEMO_BACKUP_DIR/base.backup"
-python3 - "$RUNTIME/clinical_manifest.json" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-Path(sys.argv[1]).write_text(
-    json.dumps(
-        {"version": 4, "encounters": {}},
-        ensure_ascii=False,
-        indent=2,
-    )
-    + "\n",
-    encoding="utf-8",
-)
-PY
+cp "$CLINICAL_MANIFEST" "$RUNTIME/clinical_manifest.json"
 [ ! -e "$PLACEHOLDER_BACKUP" ] || {
     echo "Placeholder de build já existe: $PLACEHOLDER_BACKUP" >&2
     exit 1
@@ -348,16 +334,6 @@ recreate_database_from() {
         -1 --no-owner --no-acl "$archive"
 }
 
-reset_synthetic_clinical_history() {
-    # The versioned bootstrap is synthetic-only but still contains the v1 SOAP
-    # cohort. The v4 generator must start with the same citizens and operational
-    # setup, but without legacy attendances/problems that would be duplicated.
-    compose exec -T db psql \
-        -U "$DEMO_POSTGRES_USER" -d "$DEMO_POSTGRES_DB" \
-        -v ON_ERROR_STOP=1 -q \
-        -c "TRUNCATE TABLE tb_atend CASCADE;"
-}
-
 echo "[1/8] Gerando e validando o CNES sintético..."
 UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
     uv run --project "$SCRIPT_DIR" pec-demo generate-cnes \
@@ -375,7 +351,6 @@ compose build pec
 compose up -d db
 wait_database
 recreate_database_from /backups/base.backup
-reset_synthetic_clinical_history
 compose up -d pec
 wait_pec
 

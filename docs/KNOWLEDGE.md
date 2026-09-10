@@ -612,3 +612,13 @@ Inspeção realizada somente sobre metadados com `db-schema.sh`,
 atribuição territorial deve usar a mutation `salvarCidadao`, e não uma escrita
 direta em `tb_cidadao` ou tabelas de fatos. A listagem do MCP deriva as
 microáreas ativas de `tb_fat_cad_individual.nu_micro_area` por equipe.
+
+## Provisionamento do papel `esus_leitura`
+
+O SQL canônico fica em `cloud/db-entrypoint/grant-esus-leitura.sql`, montado em
+`/docker-entrypoint-initdb.d` pelo Compose cloud. O entrypoint oficial do
+PostgreSQL o executa quando o diretório de dados é inicializado. Como esse hook
+não cobre volumes existentes nem a recriação do banco feita por `make restore`,
+`scripts/build.sh` reaplica o mesmo arquivo depois de `pg_restore`. O script
+cria ou atualiza o papel, concede `CONNECT`, `USAGE`, leitura das tabelas atuais
+e leitura padrão das tabelas futuras criadas pelo proprietário da instalação.

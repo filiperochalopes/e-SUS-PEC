@@ -19,6 +19,7 @@ from pec_demo.clinical import (
 )
 from pec_demo.factory import build_demo_dataset
 from pec_demo.patients import build_patient_cohort
+from pec_demo.coverage import CASES, build_coverage_cohort
 from pec_demo.pec_client import PecClientError, PecGraphQLClient
 from pec_demo.provisioning import provision_demo_credentials
 from pec_demo.provisioning import validate_demo_credentials
@@ -65,6 +66,7 @@ def refresh_demo_pack(
     seed: int,
     generated_on: date,
     pec_version: str,
+    reference_date: date | None = None,
 ) -> RefreshedPack:
     """Import CNES, normalize credentials, and idempotently refresh clinical data."""
     dataset = build_demo_dataset(
@@ -74,6 +76,7 @@ def refresh_demo_pack(
         cep=cep,
         generated_on=generated_on,
         pec_version=pec_version,
+        include_acs=reference_date is not None,
     )
     administrator = next(
         item for item in dataset.professionals if item.key == "multiprofile"
@@ -156,7 +159,7 @@ def refresh_demo_pack(
                 cbo2002=NURSE_CBO,
             ),
         ),
-        update_existing_territory=True,
+        update_existing_territory=False,
     )
     histories = provision_clinical_histories(
         cohort,
@@ -178,6 +181,27 @@ def refresh_demo_pack(
         reference_date=generated_on,
         manifest_path=clinical_manifest_path,
     )
+    if reference_date is not None:
+        extension = build_coverage_cohort(seed=seed, reference_date=reference_date)
+        for patient in extension:
+            case = CASES[patient.key]
+            unit = dataset.units[case.unit]
+            acs = next(p for p in dataset.professionals if p.key == f"acs_{case.unit + 1}")
+            registration_client = PecGraphQLClient(base_url)
+            registration_client.login(acs.cpf, acs.planned_password)
+            patients += provision_citizens(
+                (patient,), client=registration_client,
+                municipality_ibge=municipality_ibge, municipality_name=municipality_name,
+                cnes=unit.cnes, ine=unit.teams[0].ine, cbo2002="515105",
+                territory_assignments=(TerritoryAssignment(unit.cnes, unit.teams[0].ine, "515105", (case.microarea,)),),
+            )
+        histories += provision_clinical_histories(
+            extension, client=clinical_client,
+            assignments=(
+                ClinicalAssignment("medico", medical_unit.cnes, DOCTOR_CBO, DOCTOR_PROCEDURE),
+                ClinicalAssignment("enfermagem", nursing_unit.cnes, NURSE_CBO, NURSE_PROCEDURE),
+            ), reference_date=reference_date, manifest_path=clinical_manifest_path,
+        )
     return RefreshedPack(
         credentials=len(credentials),
         assignments=sum(len(item.assignments) for item in credentials),
@@ -198,6 +222,7 @@ def validate_demo_pack(
     seed: int,
     generated_on: date,
     pec_version: str,
+    reference_date: date | None = None,
 ) -> ValidatedPack:
     """Strictly validate a restored pack without importing or writing."""
     dataset = build_demo_dataset(
@@ -207,12 +232,15 @@ def validate_demo_pack(
         cep=cep,
         generated_on=generated_on,
         pec_version=pec_version,
+        include_acs=reference_date is not None,
     )
     credentials = validate_demo_credentials(dataset, base_url=base_url)
     administrator = next(
         item for item in dataset.professionals if item.key == "multiprofile"
     )
     cohort = build_patient_cohort(seed=seed, generated_on=generated_on)
+    if reference_date is not None:
+        cohort += build_coverage_cohort(seed=seed, reference_date=reference_date)
     medical_unit = dataset.units[0]
     nursing_unit = dataset.units[1]
     client = PecGraphQLClient(base_url)

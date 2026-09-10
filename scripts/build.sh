@@ -281,6 +281,13 @@ else
             pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" -1 --no-owner --no-acl \
             "/backups/$backup_name"
 
+        if [ "$cloud_mode" = true ]; then
+            echo "${GREEN}Reaplicando acesso de esus_leitura após restauração...${NC}"
+            compose_run exec -T db \
+                psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+                -f /docker-entrypoint-initdb.d/grant-esus-leitura.sql
+        fi
+
         echo "${GREEN}Restauração concluída. Iniciando PEC...${NC}"
         compose_run up -d pec
     else

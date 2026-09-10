@@ -182,6 +182,9 @@ def _age_on(birth_date: date, reference: date) -> int:
 
 def build_encounter_plan(patient: SyntheticPatient) -> tuple[PlannedEncounter, ...]:
     """Build a deterministic 2-10 encounter longitudinal history."""
+    from pec_demo.coverage import CASES, build_coverage_encounters
+    if patient.key in CASES:
+        return build_coverage_encounters(patient)
     marker = patient.key.upper().replace("_", "-")
     context = patient.scenario
     count = ENCOUNTER_COUNTS[patient.key]

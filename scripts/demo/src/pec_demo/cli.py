@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--seed", type=int, default=5522)
     generate.add_argument("--generated-on", type=_iso_date, required=True)
     generate.add_argument("--pec-version", default=DEFAULT_PEC_VERSION)
+    generate.add_argument("--include-acs", action="store_true")
     provision = subparsers.add_parser(
         "provision-credentials",
         help="set final PEC passwords and publish only validated credentials",
@@ -112,6 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=date(2026, 7, 27),
     )
     refresh.add_argument("--pec-version", default=DEFAULT_PEC_VERSION)
+    refresh.add_argument("--reference-date", type=_iso_date)
     validate = subparsers.add_parser(
         "validate-pack",
         help="strictly validate a restored pack without writing",
@@ -128,6 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=date(2026, 7, 27),
     )
     validate.add_argument("--pec-version", default=DEFAULT_PEC_VERSION)
+    validate.add_argument("--reference-date", type=_iso_date)
     patient_index = subparsers.add_parser(
         "generate-patient-index",
         help="write a one-line clinical summary for every synthetic patient",
@@ -164,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
             cep=args.cep,
             generated_on=args.generated_on,
             pec_version=args.pec_version,
+            include_acs=args.include_acs,
         )
         try:
             paths = write_generation_artifacts(
@@ -283,6 +287,7 @@ def main(argv: list[str] | None = None) -> int:
                 seed=args.seed,
                 generated_on=args.generated_on,
                 pec_version=args.pec_version,
+                reference_date=args.reference_date,
             )
         except PecClientError as error:
             print(str(error), file=sys.stderr)
@@ -306,6 +311,7 @@ def main(argv: list[str] | None = None) -> int:
                 seed=args.seed,
                 generated_on=args.generated_on,
                 pec_version=args.pec_version,
+                reference_date=args.reference_date,
             )
         except PecClientError as error:
             print(str(error), file=sys.stderr)

@@ -24,6 +24,8 @@ compose.override.yml
 decompiled-java/
 certificates/
 *entrypoint/
+!cloud/db-entrypoint/
+!cloud/db-entrypoint/*.sql
 opt-esus/
 esus-*/
 nginx/
