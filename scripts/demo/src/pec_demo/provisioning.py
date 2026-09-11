@@ -181,43 +181,54 @@ def provision_demo_credentials(
     credentials_path: Path,
     client_factory: ClientFactory = _default_client_factory,
 ) -> tuple[ValidatedCredential, ...]:
-    """Set final passwords, validate all logins, then atomically publish them."""
-    try:
-        current = validate_demo_credentials(
-            dataset,
-            base_url=base_url,
-            client_factory=client_factory,
-        )
-    except PecClientError:
-        current = ()
-    if current:
-        _atomic_write_credentials(credentials_path, _render_credentials(current))
-        return current
+    """Set the final password of each professional that still needs one.
 
-    admin = client_factory(base_url)
-    admin.login(admin_login, admin_password)
-    admin.select_credential_admin_access()
-
-    # Resetting the current administrator revokes its own session. It is already
-    # usable (the login above proved it), so provision other professionals first.
+    The check is per professional, not for the cohort as a whole.  A pack that
+    already carries some provisioned professionals — the bootstrap does — must
+    not have their password reset: PEC refuses to set a password equal to the
+    current one, and a single unprovisioned newcomer would otherwise drag the
+    whole cohort into a reset it cannot perform.
+    """
+    validated_by_key: dict[str, ValidatedCredential] = {}
+    pending: list[Professional] = []
     for professional in dataset.professionals:
-        if professional.cpf == admin_login:
-            continue
-        token = admin.request_password_reset_token(professional.cpf)
-        public = client_factory(base_url)
-        public.reset_password(
-            professional.cpf,
-            token,
-            professional.planned_password,
-        )
+        try:
+            validated_by_key[professional.key] = _validate_professional_login(
+                base_url,
+                professional,
+                client_factory=client_factory,
+            )
+        except PecClientError:
+            pending.append(professional)
+
+    if pending:
+        admin = client_factory(base_url)
+        admin.login(admin_login, admin_password)
+        admin.select_credential_admin_access()
+        for professional in pending:
+            if professional.cpf == admin_login:
+                # Resetting the administrator revokes the very session used to
+                # mint the tokens. The caller already logged in as this
+                # professional, so a pending administrator is a real fault.
+                raise PecClientError(
+                    "the administrator professional is not usable with its "
+                    "planned password"
+                )
+            token = admin.request_password_reset_token(professional.cpf)
+            public = client_factory(base_url)
+            public.reset_password(
+                professional.cpf,
+                token,
+                professional.planned_password,
+            )
+            validated_by_key[professional.key] = _validate_professional_login(
+                base_url,
+                professional,
+                client_factory=client_factory,
+            )
 
     validated = tuple(
-        _validate_professional_login(
-            base_url,
-            professional,
-            client_factory=client_factory,
-        )
-        for professional in dataset.professionals
+        validated_by_key[professional.key] for professional in dataset.professionals
     )
     multiprofile = next(
         item for item in validated if item.professional.key == "multiprofile"

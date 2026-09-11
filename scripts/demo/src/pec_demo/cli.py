@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import date
+import json
 from pathlib import Path
 import sys
 
@@ -23,6 +24,17 @@ from pec_demo.pack import refresh_demo_pack, validate_demo_pack
 from pec_demo.patient_index import write_patient_index
 from pec_demo.pec_client import PecClientError, PecGraphQLClient
 from pec_demo.provisioning import provision_demo_credentials
+from pec_demo.coverage import build_coverage_cohort, coverage_contract
+from pec_demo.preservation import (
+    compare as compare_signatures,
+    parse_signature,
+    signature_script,
+)
+from pec_demo.temporal import (
+    load_manifest,
+    plan_chronology,
+    render_sql_script,
+)
 from pec_demo.version import DEFAULT_PEC_VERSION
 
 
@@ -142,6 +154,45 @@ def build_parser() -> argparse.ArgumentParser:
         type=_iso_date,
         default=date(2026, 7, 27),
     )
+    chronology = subparsers.add_parser(
+        "plan-chronology",
+        help="render the SQL that applies the planned clinical chronology",
+    )
+    chronology.add_argument("--manifest-file", type=Path, required=True)
+    chronology.add_argument("--output-sql", type=Path, required=True)
+    chronology.add_argument("--output-report", type=Path, required=True)
+    chronology.add_argument("--seed", type=int, default=5522)
+    chronology.add_argument(
+        "--generated-on",
+        type=_iso_date,
+        default=date(2026, 7, 27),
+    )
+    chronology.add_argument("--reference-date", type=_iso_date, required=True)
+    signature = subparsers.add_parser(
+        "preservation-script",
+        help="write the read-only SQL that signs the protected cohort",
+    )
+    signature.add_argument("--output", type=Path, required=True)
+    signature.add_argument("--seed", type=int, default=5522)
+    signature.add_argument(
+        "--generated-on",
+        type=_iso_date,
+        default=date(2026, 7, 27),
+    )
+    preservation = subparsers.add_parser(
+        "check-preservation",
+        help="fail unless the protected cohort changed only its clinical dates",
+    )
+    preservation.add_argument("--before", type=Path, required=True)
+    preservation.add_argument("--after", type=Path, required=True)
+    preservation.add_argument("--output-report", type=Path, required=True)
+    preservation.add_argument("--expected-patients", type=int, default=10)
+    contract = subparsers.add_parser(
+        "publish-coverage-contract",
+        help="write the versioned scenario and coverage manifest",
+    )
+    contract.add_argument("--output", type=Path, required=True)
+    contract.add_argument("--reference-date", type=_iso_date, required=True)
     return parser
 
 
@@ -155,6 +206,98 @@ def main(argv: list[str] | None = None) -> int:
         )
         write_patient_index(cohort, args.output)
         print(f"patient_index={args.output}")
+        return 0
+
+    if args.command == "preservation-script":
+        cohort = build_patient_cohort(
+            seed=args.seed,
+            generated_on=args.generated_on,
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            signature_script(tuple(item.cpf for item in cohort)),
+            encoding="utf-8",
+        )
+        print(f"preservation_script={args.output}")
+        print(f"protected_patients={len(cohort)}")
+        return 0
+
+    if args.command == "check-preservation":
+        try:
+            report = compare_signatures(
+                parse_signature(args.before.read_text(encoding="utf-8")),
+                parse_signature(args.after.read_text(encoding="utf-8")),
+                expected_patients=args.expected_patients,
+            )
+        except (OSError, ValueError) as error:
+            print(str(error), file=sys.stderr)
+            return 1
+        args.output_report.parent.mkdir(parents=True, exist_ok=True)
+        args.output_report.write_text(
+            json.dumps(report.as_dict(), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"preservation_report={args.output_report}")
+        print(f"preserved_patients={report.patients}")
+        print(f"renewed_chronologies={len(report.renewed)}")
+        return 0
+
+    if args.command == "publish-coverage-contract":
+        payload = coverage_contract(args.reference_date)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(f"coverage_contract={args.output}")
+        print(f"extended_patients={payload['extended_patients']}")
+        print(f"planned_encounters={payload['planned_encounters']}")
+        return 0
+
+    if args.command == "plan-chronology":
+        cohort = build_patient_cohort(
+            seed=args.seed,
+            generated_on=args.generated_on,
+        ) + build_coverage_cohort(
+            seed=args.seed,
+            reference_date=args.reference_date,
+        )
+        try:
+            manifest = load_manifest(args.manifest_file)
+            schedules = plan_chronology(
+                manifest=manifest,
+                patients=cohort,
+                reference_date=args.reference_date,
+            )
+        except (OSError, ValueError) as error:
+            print(str(error), file=sys.stderr)
+            return 1
+        args.output_sql.parent.mkdir(parents=True, exist_ok=True)
+        args.output_sql.write_text(render_sql_script(schedules), encoding="utf-8")
+        report = {
+            "schema_version": 1,
+            "reference_date": args.reference_date.isoformat(),
+            "encounters": len(schedules),
+            "oldest": min(item.clinical_date for item in schedules).isoformat(),
+            "latest": max(item.clinical_date for item in schedules).isoformat(),
+            "schedule": [
+                {
+                    "key": item.key,
+                    "patient_key": item.patient_key,
+                    "attendance_professional_id": item.attendance_professional_id,
+                    "starts_at": item.starts_at.isoformat(sep=" ", timespec="seconds"),
+                }
+                for item in sorted(schedules, key=lambda entry: entry.key)
+            ],
+        }
+        args.output_report.parent.mkdir(parents=True, exist_ok=True)
+        args.output_report.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"chronology_sql={args.output_sql}")
+        print(f"chronology_report={args.output_report}")
+        print(f"scheduled_encounters={len(schedules)}")
         return 0
 
     if args.command == "generate-cnes":

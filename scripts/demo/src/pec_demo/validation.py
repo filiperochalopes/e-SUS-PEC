@@ -51,7 +51,11 @@ class CnesCatalog:
     unit_type_codes: frozenset[str] = frozenset({"2"})
     complexity_codes: frozenset[str] = frozenset({"AB"})
     team_type_codes: frozenset[str] = frozenset({"01"})
-    cbo_codes: frozenset[str] = frozenset({"225130", "223505"})
+    # Confirmed in tb_cbo of the restored 5.5.28 pack: 225130 MEDICO DE FAMILIA
+    # E COMUNIDADE, 223505 ENFERMEIRO, 515105 AGENTE COMUNITARIO DE SAUDE.
+    # The community health agent is what signs the individual registration
+    # forms the territorial filters depend on.
+    cbo_codes: frozenset[str] = frozenset({"225130", "223505", "515105"})
     uf_codes: frozenset[str] = BRAZILIAN_UFS
 
 

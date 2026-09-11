@@ -7,6 +7,7 @@ from http.cookiejar import CookieJar
 import json
 from pathlib import Path
 import time
+import unicodedata
 from typing import Any
 from urllib.parse import unquote
 from urllib.error import HTTPError, URLError
@@ -160,6 +161,44 @@ AUTOMATIC_PROCEDURES = GraphQLOperation(
     """,
 )
 
+PROCEDURES_BY_CODES = GraphQLOperation(
+    "ProcedimentosPorCodigo",
+    """
+    query ProcedimentosPorCodigo($codigos: [String!]!) {
+      procedimentosByCodigos(codigos: $codigos) {
+        id
+        descricao
+        codigo
+        ativo
+      }
+    }
+    """,
+)
+
+IMMUNOBIOLOGICALS = GraphQLOperation(
+    "ImunobiologicoSelectField",
+    """
+    query ImunobiologicoSelectField($input: ImunobiologicoQueryInput!) {
+      imunobiologicos(input: $input) {
+        content { id nome sigla }
+      }
+    }
+    """,
+)
+
+IMMUNOBIOLOGICAL_DOSES = GraphQLOperation(
+    "DoseImunobiologicoSelectField",
+    """
+    query DoseImunobiologicoSelectField(
+      $input: DoseImunobiologicoVacinacaoQueryInput!
+    ) {
+      doseImunobiologicoVacinacao(input: $input) {
+        content { id nome sigla }
+      }
+    }
+    """,
+)
+
 CIAPS = GraphQLOperation(
     "CiapSelectField",
     """
@@ -268,6 +307,41 @@ INDIVIDUAL_ATTENDANCE = GraphQLOperation(
     }
     """,
 )
+
+
+def _normalize_label(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    return "".join(
+        character
+        for character in normalized
+        if not unicodedata.combining(character)
+    ).casefold().strip()
+
+
+def _single_exact_match(
+    content: list[dict[str, Any]],
+    wanted: str,
+    *,
+    field: str,
+    label: str,
+) -> dict[str, Any]:
+    """Pick the one catalog entry whose ``field`` equals ``wanted`` exactly.
+
+    Only exact matches are accepted.  Substring matching is unsafe here: the
+    5.5.28 catalog carries six influenza products whose names share a prefix,
+    and the acronyms of the infant and the adult dTpa differ only in letter
+    case, so a loose match silently resolves to the wrong vaccine.
+    """
+    normalized = _normalize_label(wanted)
+    candidates = [
+        item for item in content if _normalize_label(item.get(field)) == normalized
+    ]
+    if len(candidates) != 1:
+        raise PecClientError(
+            f"expected one {label} whose {field} is {wanted!r}, "
+            f"found {len(candidates)}"
+        )
+    return candidates[0]
 
 
 class PecGraphQLClient:
@@ -540,6 +614,89 @@ class PecGraphQLClient:
             )
         return str(matches[0]["id"])
 
+    def procedure_id(self, codes: tuple[str, ...]) -> str:
+        """Resolve one active procedure from a tuple of natural codes.
+
+        Consumers of the demo data resolve HbA1c, foot assessment, cytology and
+        mammography by natural code because the internal ids differ between
+        catalogs.  The factory must do the same, and must fail loudly when the
+        restored catalog carries none of the accepted codes.
+        """
+        if not codes:
+            raise PecClientError("at least one natural procedure code is required")
+        procedures = (
+            self.execute(PROCEDURES_BY_CODES, {"codigos": list(codes)}).get(
+                "procedimentosByCodigos"
+            )
+            or []
+        )
+        by_code = {
+            str(item.get("codigo")): item
+            for item in procedures
+            if item.get("ativo") is not False
+        }
+        for code in codes:
+            match = by_code.get(code)
+            if match:
+                return str(match["id"])
+        raise PecClientError(
+            "no active procedure found for any of the natural codes "
+            f"{', '.join(codes)}"
+        )
+
+    def immunobiological_id(self, name: str, *, search: str) -> str:
+        """Resolve one immunobiological by its exact catalog name.
+
+        ``search`` narrows the server-side query; ``name`` must then match one
+        catalog entry exactly, so a partial name can never silently resolve to
+        a neighbouring product.
+        """
+        data = self.execute(
+            IMMUNOBIOLOGICALS,
+            {
+                "input": {
+                    "query": search,
+                    "pageParams": {"size": 200, "fetchPageInfo": False},
+                    "semRegras": True,
+                }
+            },
+        )
+        return str(
+            _single_exact_match(
+                (data.get("imunobiologicos") or {}).get("content") or [],
+                name,
+                field="nome",
+                label="immunobiological",
+            )["id"]
+        )
+
+    def immunobiological_dose_id(
+        self,
+        acronym: str,
+        *,
+        immunobiological_id: str,
+    ) -> str:
+        """Resolve one dose of a given immunobiological by its exact acronym."""
+        data = self.execute(
+            IMMUNOBIOLOGICAL_DOSES,
+            {
+                "input": {
+                    "query": "",
+                    "pageParams": {"size": 200, "fetchPageInfo": False},
+                    "imunobiologicoIds": [int(immunobiological_id)],
+                    "semRegras": True,
+                }
+            },
+        )
+        return str(
+            _single_exact_match(
+                (data.get("doseImunobiologicoVacinacao") or {}).get("content") or [],
+                acronym,
+                field="sigla",
+                label="immunobiological dose",
+            )["id"]
+        )
+
     def ciap_id(
         self,
         code: str,
@@ -710,13 +867,20 @@ class PecGraphQLClient:
         *,
         medical_record_id: str | int,
         cid10_id: str | int,
+        ciap_id: str | int | None = None,
     ) -> dict[str, Any] | None:
+        """Find an open problem by its coding pair.
+
+        A problem opened with both a CIAP-2 and a CID-10 — a pregnancy, for
+        instance — is only found when both codes are supplied.
+        """
         problem = self.execute(
             PROBLEM_BY_CID,
             {
                 "input": {
                     "prontuarioId": str(medical_record_id),
                     "cidId": str(cid10_id),
+                    **({"ciapId": str(ciap_id)} if ciap_id else {}),
                     "situacoes": ["ATIVO", "LATENTE"],
                 }
             },

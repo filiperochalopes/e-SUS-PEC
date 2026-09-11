@@ -8,6 +8,7 @@ RESOLVE_JAR_SCRIPT := scripts/resolve-pec-jar.sh
 DEMO_BUILD_SCRIPT := scripts/demo/build-demo-backup.sh
 DEMO_PROMOTE_SCRIPT := scripts/demo/promote-pack.sh
 BUILD_ARGS ?=
+DEMO_ARGS ?=
 JAR ?=
 BACKUP ?=
 OUTPUT ?= codebase
@@ -39,7 +40,8 @@ help:
 		'  JAR=<arquivo-ou-url>  Usa uma versão específica do PEC' \
 		'  BACKUP=<arquivo>      Backup usado pelo alvo restore' \
 		'  OUTPUT=<diretório>    Saída usada pelo alvo codebase' \
-		'  BUILD_ARGS="..."      Opções adicionais para scripts/build.sh'
+		'  BUILD_ARGS="..."      Opções adicionais para scripts/build.sh' \
+		'  DEMO_ARGS="..."       Opções adicionais para o alvo upgrade-demo'
 
 check-env:
 	@test -f .env || { echo 'Erro: copie .env.example para .env e revise a configuração.' >&2; exit 1; }
@@ -82,7 +84,7 @@ upgrade-demo:
 	echo "Atualizando scripts/demo/pack/ para o PEC $$version ($$jar_filename)..."; \
 	sh $(DEMO_BUILD_SCRIPT) \
 		--upgrade-jar "$$jar_filename" \
-		--upgrade-pec-version "$$version" && \
+		--upgrade-pec-version "$$version" $(DEMO_ARGS) && \
 	sh $(DEMO_PROMOTE_SCRIPT) \
 		--backup "scripts/demo/output/pec-demo-$$version.backup" \
 		--jar "$$jar_filename" \

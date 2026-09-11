@@ -622,3 +622,212 @@ não cobre volumes existentes nem a recriação do banco feita por `make restore
 `scripts/build.sh` reaplica o mesmo arquivo depois de `pg_restore`. O script
 cria ou atualiza o papel, concede `CONNECT`, `USAGE`, leitura das tabelas atuais
 e leitura padrão das tabelas futuras criadas pelo proprietário da instalação.
+
+## Alcance clínico do `saveAtendimentoIndividual` (5.5.28)
+
+**Confirmado no codebase** (`AtendimentoIndividualInput` e seus sub-inputs em
+`br/ufsc/bridge/pec/backend/module/atendimento/...`):
+
+Uma única mutação oficial de SOAP já carrega quase todos os domínios clínicos
+que os relatórios e as ferramentas consomem. Não é preciso inventar contratos
+CDS para a maior parte da fábrica:
+
+| Domínio | Campo | Datação própria |
+|---|---|---|
+| Medições | `objetivo.medicoes` (`MedicoesInput`) | `dataMedicao` |
+| DUM | `objetivo.medicoes.dum` | — |
+| Glicemia capilar | `medicoes.glicemia` + `medicoes.tipoGlicemia` | `JEJUM`, `POSPRANDIAL`, `PREPRANDIAL`, `NAO_ESPECIFICADO` |
+| Resultado de exame | `objetivo.resultadosExame` (`ResultadoExameInput`) | `dataRealizacao`, `dataResultado` |
+| Solicitação e rastreio | `plano.solicitacoesExame` (com `rastreioCitopatologicoColoUtero` e `rastreioMamografia`) | — |
+| Pré-natal | `preNatal` (`PreNatalInput`) | idade gestacional derivada da DUM |
+| Vacinação | `registrosVacinacao` (`RegistroVacinacaoInput`) | `dataAplicacao` + `isRegistroAnterior` |
+| Puericultura | `objetivo.puericultura` | — |
+
+`ResultadoExameInputValidator` exige que `dataRealizacao`/`dataResultado`
+sejam **anteriores ou iguais à data do atendimento** e **posteriores ou iguais
+à data de nascimento**.
+
+A **visita domiciliar não está neste contrato** — continua dependendo da ficha
+CDS. Enquanto isso, o componente C5 do Saúde 360 não tem origem oficial na
+fábrica e deve ser declarado como pendência, nunca simulado.
+
+## Limite do registro tardio de atendimento (5.5.28)
+
+**Confirmado no codebase** (`RegistroTardioMutationResolver.salvarRegistroTardio`,
+`RegistroTardioInput.dataHorarioAtendimento`,
+`RegistroTardioInputValidatorKt`):
+
+Existe um contrato oficial para criar um atendimento com data retroativa, mas
+a janela é de **7 dias** (`DEFAULT_DATE_DIFF = 7`), ou 30 dias no contexto de
+saúde indígena (`SAUDE_INDIGENA_DATE_DIFF = 30`). O validador rejeita datas
+fora de `[hoje − janela, fim do dia de hoje]`.
+
+Consequência para a fábrica de dados sintéticos: **não é possível autorar por
+API uma história longitudinal de meses ou anos de atendimentos**. Fatos com
+data própria (medições, resultados de exame, doses de vacina) podem ser
+recuados dentro do atendimento; a data do próprio atendimento não. Uma
+cronologia longitudinal exige o adaptador temporal descrito no plano —
+atualização dos campos clínicos operacionais após a geração, seguida de
+reprocessamento oficial — e não pode ser obtida apenas com `registroTardio`.
+
+## Adaptador temporal: colunas operacionais ancoradas em `co_atend_prof`
+
+**Confirmado no schema** (cópia isolada do pack sintético 5.5.28) e
+**validado com dados sintéticos** (aplicação e reaplicação em transação com
+rollback, sem alterar a cópia de investigação):
+
+Toda a cronologia clínica de um atendimento PEC pode ser reescrita a partir de
+`tb_atend_prof.co_seq_atend_prof`:
+
+| Tabela | Colunas de data | Âncora |
+|---|---|---|
+| `tb_atend` | `dt_inicio`, `dt_fim` | `tb_atend_prof.co_atend` |
+| `tb_atend_prof` | `dt_inicio`, `dt_fim` | `co_seq_atend_prof` |
+| `tb_medicao` | `dt_medicao` | `co_atend_prof` |
+| `tb_problema_evolucao` | `dt_inicio_problema`, `dt_fim_problema` | `co_atend_prof` |
+| `tb_receita_medicamento` | `dt_inicio_tratamento`, `dt_fim_tratamento` | `co_atend_prof` |
+
+Não devem ser reescritas: `tb_atend.dt_criacao_registro` (auditoria),
+`tb_exame_requisitado.dt_realizacao`/`dt_resultado`,
+`tb_registro_vacinacao.dt_aplicacao` e `tb_pre_natal.dt_ultima_menstruacao` —
+essas quatro já são datadas pelo contrato oficial do SOAP.
+
+Distinguir `tb_problema_evolucao` (operacional) de `ta_problema_evolucao`
+(auditoria) e `tl_problema_evolucao` (versionamento). O adaptador escreve
+somente na primeira.
+
+Deslocar problemas e prescrições **pelo mesmo delta em dias** do atendimento,
+em vez de sobrescrever com a data do atendimento, preserva a duração dos
+tratamentos finitos e a ordem entre início e fim do problema. Como efeito
+colateral útil, a segunda aplicação tem delta zero e atualiza zero linhas —
+idempotência verificada em execução real.
+
+## Registro anterior de vacina e o relatório gerencial
+
+**Confirmado no codebase**: `RelatorioGerencialVacinacaoListingQuery` filtra
+`fatoVacinacaoVacina.isRegistroAnterior.isFalse()`. Uma dose gravada como
+registro anterior — único caminho oficial para uma data retroativa sem lote —
+**não aparece no relatório gerencial de vacinação**.
+
+O componente C6 do Saúde 360, por outro lado, lê `tb_fat_vacinacao` filtrando
+apenas `ds_filtro_imunobiologico`, sem olhar `st_registro_anterior`. Doses
+sintéticas retroativas contam para C6 e não contam para o relatório gerencial;
+a limitação é do dado retroativo, não do indicador, e deve ser declarada.
+
+## Gatilho do processamento de relatórios (ETL) na 5.5.28
+
+**Confirmado no codebase.** Não existe, nesta versão:
+
+- endpoint REST para processar relatórios (nenhum `@*Mapping` em
+  `br/ufsc/bridge/pec/backend/module/**` referencia processamento);
+- mutação GraphQL — o módulo `graphql/processamento` só expõe a consulta
+  `dataUltimoProcessamento()`;
+- agendador — não há `@Scheduled`, cron ou timer para o ETL em nenhum jar
+  `report.*`/`esus.web` (a única classe *Starter* é `ReportEtlStarter`, que não
+  se agenda);
+- operação JMX de início — `JmxEtlConfiguration` expõe apenas informação
+  (`processamentoInfo`, `processamentoEtapaAtual`, `etlConfigs`) e ainda é
+  `@ConditionalOnProperty("spring.boot.admin.client.url")`, desabilitada por
+  padrão;
+- configuração que dispare o processamento — `tb_config_sistema` guarda
+  `CONFIGURACAOPROCESSAMENTORELATORIOS` (coluna `ds_inteiro`, `1` = habilitado,
+  nulo também conta como habilitado), mas ela só autoriza; não inicia nada.
+
+O único caminho é `AdministracaoRelatoriosPresenterImpl.processar()`, que chama
+`RelatorioProcessamentoAsyncService.start()`. Esse presenter pertence à tela
+legada de administração e é acionado pelo canal IPP:
+
+```
+POST /esus/performerbrowser/ipp
+```
+
+**Confirmado no codebase** que o IPP é um protocolo **JSON**, não binário:
+`IPPRequestProcess` lê o corpo como texto e `IPPDispatcher` faz
+`request.loadFromJSON(...)`, esperando `{actions:[{reference, event, ...}]}`.
+A sessão começa com um `action` de `reference = PeFacesApplication.ID` e
+`event = EVENT_START`; as ações seguintes referenciam ids de componente
+gerados em tempo de execução.
+
+Consequência prática: automatizar o processamento é viável sem navegador, mas
+exige descobrir empiricamente a sequência de navegação e os ids de componente
+contra uma instância viva. Até então, o ETL é um passo manual e a fábrica deve
+publicar o backup com selo parcial, nunca com selo de validação completa.
+
+## Contratos do SOAP exercitados contra o PEC 5.5.28
+
+**Validado com dados sintéticos** numa fábrica real (42 cidadãos, 220
+atendimentos). Cada item abaixo custou uma rejeição do PEC; são regras que o
+decompilado não deixa óbvias.
+
+### Avaliação
+
+- **Todo atendimento individual exige ao menos um problema/condição avaliada.**
+  Um atendimento de rotina sem diagnóstico ainda precisa de um CIAP-2; usamos
+  `A98` sem incluir na lista de problemas.
+- **Um problema com CIAP-2 e CID-10 só é encontrado com os dois códigos.**
+  `problemaByCiapCid` exige `ciapId` junto de `cidId`; com um só, devolve nulo.
+- **Resolver um problema de dois códigos exige os dois.** Enviar só o CID dá
+  "O problema deve possuir um CID10 e/ou CIAP2"; omitir ambos, idem.
+
+### Pré-natal
+
+- `preNatal` exige que a condição avaliada relacione **CIAP-2 e CID-10**
+  (`W78` + `Z34.0`). Como o acesso padrão de enfermagem é CIAP-only, **o
+  pré-natal só pode ser registrado por acesso médico**. Enviar `medicoes.dum`
+  numa consulta de enfermagem aciona a mesma validação e é rejeitado.
+- **Um prontuário aceita uma única condição de gestação.** O primeiro
+  atendimento abre o problema com `incluirListaProblemas`; os seguintes
+  precisam **evoluí-lo** informando `problemaId` e o `id` da avaliação. Sem
+  isso, o PEC alterna entre "É obrigatório incluir problema de gestação" e
+  "Não é possível salvar mais de uma condição de gestação por prontuário".
+
+### Resultados de exame
+
+- `resultadosExame` aceita apenas procedimentos do grupo
+  **`FINALIDADE_DIAGNOSTICA`**. O exame do pé diabético (`0301040095`) é
+  procedimento clínico: pertence a `plano.procedimentos`, não a resultados.
+- Os procedimentos listados em `ProcedimentoExameDetalheEspecificoDbEnum`
+  exigem o bloco `especifico` e **recusam texto livre** em `resultado`:
+
+  | Enum | Códigos |
+  |---|---|
+  | `HEMOGLOBINA_GLICADA` | `0202010503`, `ABEX008` |
+  | `PRENATAL` | `0205020143`, `ABEX024`, `0205020151`, `ABEX025`, `0205010059` |
+  | `COLESTEROL_TOTAL` | `ABEX002`, `0202010295` |
+
+  O tipo GraphQL chama-se `ResultadoExameEspecializadoInput` e **não expõe
+  `id`**. `igSemanas`/`igDias` são aceitos apenas com `procedimento: PRENATAL`.
+
+### Vacinação
+
+Para `isRegistroAnterior = true` (único caminho para dose retroativa):
+
+- `estrategiaVacinacao` é **proibido** ("Preenchimento não permitido");
+- `uuidRegistrovacinacao` **não existe** no tipo GraphQL, apesar de existir no
+  campo Java;
+- `isPesquisaClinica` não pode ser nulo: `tb_registro_vacinacao.st_pesquisa_clinica`
+  é `NOT NULL`;
+- lote, via de administração e local de aplicação seguem não preenchidos.
+
+`ProcedimentosPlanoInput` também não expõe `automatico`.
+
+### Ciclo de vida do atendimento e do prontuário
+
+- **O prontuário é criado no primeiro atendimento, não no cadastro.** Um cidadão
+  recém-cadastrado tem `prontuario` nulo; exigi-lo antes de atender quebra a
+  coorte nova. Resolver sob demanda.
+- **O PEC recusa um segundo atendimento aberto para o mesmo cidadão**
+  ("Este cidadão já está na lista de atendimentos"). Se a finalização falhar, o
+  atendimento aberto fica e bloqueia a re-execução. A fábrica persiste o
+  `attendance_id` no manifesto **antes** de finalizar e o reaproveita.
+- **`tb_atend.dt_fim` é sempre nulo** nesta base, inclusive nos atendimentos
+  finalizados (`st_atend = 4`); só `tb_atend_prof.dt_fim` é preenchido. Um
+  adaptador temporal que escreva `dt_fim` cegamente muda estado, não data.
+
+### Catálogos
+
+- Resolver por **nome exato**, nunca por substring: há seis produtos de
+  influenza com prefixo comum, e as siglas do dTpa infantil (`DTPa`, id 47) e
+  do adulto (`dTpa`, id 57) diferem só por caixa.
+- Todos os procedimentos `ABEX*`/`ABPG*` estão **inativos** neste pack; os
+  equivalentes SIGTAP ativos é que resolvem.

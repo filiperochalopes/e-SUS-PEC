@@ -27,6 +27,10 @@ from pec_demo.models import (
 from pec_demo.version import DEFAULT_PEC_VERSION
 
 
+# Community health agent; the CBO that authors individual registration forms.
+ACS_CBO = "515105"
+
+
 def _upper_asciiish(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value)
     letters_and_spaces = "".join(
@@ -164,7 +168,7 @@ def build_demo_dataset(
     if include_acs:
         roles += tuple(
             (f"acs_{i + 1}", "F", 30, 45,
-             (Assignment(cnes=unit.cnes, ine=unit.teams[0].ine, cbo="515105"),),
+             (Assignment(cnes=unit.cnes, ine=unit.teams[0].ine, cbo=ACS_CBO),),
              ("AGENTE_COMUNITARIO_SAUDE",))
             for i, unit in enumerate((unit_1, unit_2))
         )

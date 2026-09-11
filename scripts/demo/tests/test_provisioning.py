@@ -131,3 +131,64 @@ def test_credentials_file_is_not_published_after_failed_validation(dataset, tmp_
         FakeClient.reset_password = original_reset
 
     assert not output.exists()
+
+
+def test_only_the_professionals_without_a_password_are_reset(dataset, tmp_path):
+    """A pack with some professionals already provisioned must not reset them."""
+    pec = FakePec(dataset)
+    # The bootstrap ships the administrator and the two single-role
+    # professionals already usable; only the newcomers still need a password.
+    for professional in dataset.professionals[:3]:
+        pec.passwords[professional.cpf] = professional.planned_password
+    reset_calls = []
+    original_reset = FakeClient.reset_password
+
+    def recording_reset(self, cpf, token, password):
+        reset_calls.append(cpf)
+        return original_reset(self, cpf, token, password)
+
+    FakeClient.reset_password = recording_reset
+    try:
+        validated = provision_demo_credentials(
+            dataset,
+            base_url="http://127.0.0.1:18082",
+            admin_login=dataset.professionals[0].cpf,
+            admin_password=dataset.professionals[0].planned_password,
+            credentials_path=tmp_path / "credentials.txt",
+            client_factory=pec.client,
+        )
+    finally:
+        FakeClient.reset_password = original_reset
+
+    already_usable = {item.cpf for item in dataset.professionals[:3]}
+    assert not already_usable & set(reset_calls)
+    assert len(validated) == len(dataset.professionals)
+    assert [item.professional.key for item in validated] == [
+        item.key for item in dataset.professionals
+    ]
+
+
+def test_an_administrator_that_cannot_be_validated_fails_loudly(dataset, tmp_path):
+    """The administrator cannot reset itself: its own session mints the tokens."""
+    pec = FakePec(dataset)
+    original_session = FakeClient.session
+
+    def session_forcing_password_change(self):
+        payload = original_session(self)
+        payload["profissional"]["usuario"]["forcarTrocaSenha"] = True
+        return payload
+
+    FakeClient.session = session_forcing_password_change
+    try:
+        with pytest.raises(PecClientError, match="administrator professional"):
+            provision_demo_credentials(
+                dataset,
+                base_url="http://127.0.0.1:18082",
+                admin_login=dataset.professionals[0].cpf,
+                admin_password=dataset.professionals[0].planned_password,
+                credentials_path=tmp_path / "credentials.txt",
+                client_factory=pec.client,
+            )
+    finally:
+        FakeClient.session = original_session
+    assert not (tmp_path / "credentials.txt").exists()

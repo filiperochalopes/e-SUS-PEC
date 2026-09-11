@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
 from html import escape
 import json
@@ -51,6 +51,36 @@ METFORMIN = PlannedPrescription(
     True,
     "Tomar 1 comprimido por via oral após o café e o jantar.",
 )
+# A finite treatment is required alongside continuous use: the plugin and the
+# reports must be able to tell one from the other.
+AMOXICILLIN = PlannedPrescription(
+    "Amoxicilina",
+    "500 mg",
+    "1",
+    8,
+    21,
+    False,
+    "Tomar 1 cápsula por via oral a cada 8 horas durante 7 dias.",
+)
+
+PRESCRIPTION_CATALOG = {
+    "LOSARTAN": LOSARTAN,
+    "METFORMIN": METFORMIN,
+    "AMOXICILLIN": AMOXICILLIN,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedPrenatal:
+    """The prenatal block carried by a gestational encounter."""
+
+    gestational_days: int
+    uterine_height: int
+    fetal_heart_rate: int
+    fetal_movement: bool
+    planned_pregnancy: bool
+    pregnancy_type: str
+
 
 ENCOUNTER_COUNTS = {
     "lactente": 2,
@@ -138,10 +168,22 @@ MEASUREMENT_PROFILES = {
 
 @dataclass(frozen=True, slots=True)
 class ClinicalAssignment:
+    """One professional access able to author encounters for one team.
+
+    ``team`` is the index of the team the access belongs to.  A cohort spread
+    over two teams needs a medical and a nursing access **inside each team**;
+    reusing an access from the other unit would attach the encounter to the
+    wrong establishment.  ``login``/``password`` are required whenever the
+    access belongs to a professional other than the one already authenticated.
+    """
+
     role: str
     cnes: str
     cbo2002: str
     automatic_procedure_code: str
+    team: int = 0
+    login: str | None = None
+    password: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +202,16 @@ class PlannedEncounter:
     health_rationale: str
     measurements: dict[str, float | int | bool | None]
     prescriptions: tuple[PlannedPrescription, ...]
+    # Extended-cohort fields.  The protected bootstrap cohort leaves them empty,
+    # which keeps its payloads byte-identical to the captured 5.5.x contract.
+    ciap_code: str | None = None
+    resolve_ciap_code: str | None = None
+    encounter_date: date | None = None
+    exam_results: tuple[Any, ...] = ()
+    procedures: tuple[Any, ...] = ()
+    vaccinations: tuple[Any, ...] = ()
+    screenings: tuple[Any, ...] = ()
+    prenatal: PlannedPrenatal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,11 +232,20 @@ def _age_on(birth_date: date, reference: date) -> int:
     )
 
 
-def build_encounter_plan(patient: SyntheticPatient) -> tuple[PlannedEncounter, ...]:
-    """Build a deterministic 2-10 encounter longitudinal history."""
-    from pec_demo.coverage import CASES, build_coverage_encounters
+def build_encounter_plan(
+    patient: SyntheticPatient,
+    *,
+    reference_date: date | None = None,
+) -> tuple[PlannedEncounter, ...]:
+    """Build a deterministic longitudinal history for one synthetic patient."""
+    from pec_demo.coverage import (
+        CASES,
+        IDENTITY_EPOCH,
+        build_coverage_encounters,
+    )
+
     if patient.key in CASES:
-        return build_coverage_encounters(patient)
+        return build_coverage_encounters(patient, reference_date or IDENTITY_EPOCH)
     marker = patient.key.upper().replace("_", "-")
     context = patient.scenario
     count = ENCOUNTER_COUNTS[patient.key]
@@ -355,11 +416,26 @@ def build_individual_attendance_input(
     ciap_id: str | None,
     cid10_id: str | None,
     resolved_problems: tuple[dict[str, str], ...] = (),
+    evolved_problem: dict[str, str] | None = None,
     prescription_inputs: tuple[dict[str, Any], ...] = (),
+    procedure_inputs: tuple[dict[str, Any], ...] = (),
+    exam_result_inputs: tuple[dict[str, Any], ...] = (),
+    exam_request_inputs: tuple[dict[str, Any], ...] = (),
+    vaccination_inputs: tuple[dict[str, Any], ...] = (),
+    prenatal_input: dict[str, Any] | None = None,
     resolution_date: date | None = None,
     automatic_procedure_id: str,
 ) -> dict[str, Any]:
-    """Replicate the 5.5.24 web client's validated minimal SOAP payload."""
+    """Replicate the 5.5.24 web client's validated minimal SOAP payload.
+
+    Every extended section is omitted when empty, so the payload of a protected
+    bootstrap encounter is unchanged by the extended cohort.
+    """
+    measurements = dict(encounter.measurements) if encounter.measurements else None
+    if measurements is not None and encounter.encounter_date is not None:
+        # The measurement carries its own clinical date, independent of the
+        # instant at which the API creates the attendance.
+        measurements.setdefault("dataMedicao", encounter.encounter_date.isoformat())
     return {
         "id": str(attendance_id),
         "antecedentes": {
@@ -373,8 +449,13 @@ def build_individual_attendance_input(
         "subjetivo": {"texto": _html_paragraph(encounter.subjective)},
         "objetivo": {
             "texto": _html_paragraph(encounter.objective),
-            "medicoes": encounter.measurements or None,
+            "medicoes": measurements,
             "puericultura": None,
+            **(
+                {"resultadosExame": list(exam_result_inputs)}
+                if exam_result_inputs
+                else {}
+            ),
         },
         "avaliacao": {
             "texto": _html_paragraph(encounter.assessment),
@@ -384,13 +465,25 @@ def build_individual_attendance_input(
                         {
                             **({"ciapId": str(ciap_id)} if ciap_id else {}),
                             **({"cidId": str(cid10_id)} if cid10_id else {}),
+                            # An ongoing condition already on the list is
+                            # evolved, never added again: PEC keeps at most one
+                            # pregnancy per medical record.
                             **(
                                 {
+                                    "id": evolved_problem["evaluation_id"],
+                                    "problemaId": evolved_problem["problem_id"],
                                     "incluirListaProblemas": True,
                                     "situacao": "ATIVO",
                                 }
-                                if encounter.include_problem
-                                else {}
+                                if evolved_problem
+                                else (
+                                    {
+                                        "incluirListaProblemas": True,
+                                        "situacao": "ATIVO",
+                                    }
+                                    if encounter.include_problem
+                                    else {}
+                                )
                             ),
                         }
                     ]
@@ -401,6 +494,7 @@ def build_individual_attendance_input(
                     {
                         "id": item["evaluation_id"],
                         "cidId": item["cid10_id"],
+                        **({"ciapId": item["ciap_id"]} if item.get("ciap_id") else {}),
                         "problemaId": item["problem_id"],
                         "incluirListaProblemas": True,
                         "situacao": "RESOLVIDO",
@@ -418,13 +512,18 @@ def build_individual_attendance_input(
         },
         "plano": {
             "texto": _html_paragraph(encounter.plan),
-            "procedimentos": [],
+            "procedimentos": list(procedure_inputs),
             "prescricaoMedicamento": (
                 {"medicamentos": list(prescription_inputs)}
                 if prescription_inputs
                 else None
             ),
             "compartilhamentosCuidado": None,
+            **(
+                {"solicitacoesExame": list(exam_request_inputs)}
+                if exam_request_inputs
+                else {}
+            ),
         },
         "finalizacao": {
             "tipoAtendimento": "CONSULTA_NO_DIA",
@@ -439,14 +538,139 @@ def build_individual_attendance_input(
         },
         "medicoesAnteriores": [],
         "lembretes": [],
-        "registrosVacinacao": [],
+        "registrosVacinacao": list(vaccination_inputs),
         "problemasECondicoes": [],
+        **({"preNatal": prenatal_input} if prenatal_input else {}),
+    }
+
+
+def build_exam_result_input(
+    exam: Any,
+    *,
+    procedure_id: str,
+    encounter_date: date,
+) -> dict[str, Any]:
+    """Build one structured exam result dated inside the encounter.
+
+    ``ResultadoExameInputValidator`` requires the result dates to be earlier
+    than or equal to the attendance date and later than or equal to the birth
+    date, so the factory dates the result relative to the planned encounter.
+    """
+    realized = encounter_date - timedelta(days=exam.days_before_encounter)
+    specific = None
+    if exam.specific_procedure:
+        specific = {
+            "procedimento": exam.specific_procedure,
+            "valor": exam.numeric_value,
+            "igSemanas": exam.gestational_weeks,
+            "igDias": exam.gestational_days,
+            "dpp": None,
+            "fichaComplementarPuericultura": None,
+            "resultadoExameEstruturadoQualitativo": None,
+        }
+    return {
+        "id": None,
+        "exameId": int(procedure_id),
+        "dataSolicitacao": None,
+        "dataRealizacao": realized.isoformat(),
+        "dataResultado": realized.isoformat(),
+        # A structured exam carries its value in `especifico`; PEC rejects free
+        # text for any procedure listed as a specific-result exam.
+        "resultado": (
+            None if specific else f"{exam.label}: {exam.value} (dado sintético)."
+        ),
+        "especifico": specific,
+    }
+
+
+def build_exam_request_input(
+    *,
+    procedure_ids: tuple[str, ...],
+    justification: str,
+) -> dict[str, Any]:
+    """Build one exam request carrying the screening procedures of a scenario.
+
+    The cancer-screening questionnaires are validated only when supplied, so
+    the factory requests the procedure without inventing questionnaire answers.
+    """
+    return {
+        "id": None,
+        "examesRequisitados": [
+            {"id": None, "exameId": int(item), "observacao": None}
+            for item in procedure_ids
+        ],
+        "justificativa": justification,
+        "observacoes": None,
+        "cid10": None,
+        "tipoExame": "COMUM",
+        "rastreioCitopatologicoColoUtero": None,
+        "rastreioMamografia": None,
+    }
+
+
+def build_vaccination_input(
+    vaccine: Any,
+    *,
+    immunobiological_id: str,
+    dose_id: str,
+    encounter_date: date,
+) -> dict[str, Any]:
+    """Build one effective dose as a previous record, keeping its real date.
+
+    ``validateRegistroAnterior`` accepts an application date strictly before
+    the attendance date and requires no batch, no administration route and no
+    application site, which is exactly what a backdated synthetic dose needs.
+    Doses recorded this way are excluded from the managerial vaccination
+    report, which filters ``isRegistroAnterior``; the analytical vaccination
+    fact still receives them.
+    """
+    applied = encounter_date - timedelta(days=max(1, vaccine.days_before_encounter))
+    return {
+        "tipoRegistroVacinacao": "APLICACAO",
+        "isRegistroAnterior": True,
+        "isCadastrarNovoLote": False,
+        "imunobiologicoId": int(immunobiological_id),
+        "doseImunobiologicoId": int(dose_id),
+        # A previous record must not carry a strategy, a route, a site or a
+        # batch: validateRegistroAnterior rejects all of them as notFilled.
+        "estrategiaVacinacao": None,
+        "dataAplicacao": applied.isoformat(),
+        "dataAprazamento": None,
+        "viaAdministracaoId": None,
+        "localAplicacaoVacinacaoId": None,
+        "observacoes": "Dose sintética registrada como registro anterior.",
+        "grupoAtendimentoId": None,
+        "loteImunobiologicoId": None,
+        "loteImunobiologicoCadastro": None,
+        "isAplicadoExterior": False,
+        "isPesquisaEstrategia": False,
+        "cid10MotivoIndicacaoId": None,
+        "cboPrescritorId": None,
+        # tb_registro_vacinacao.st_pesquisa_clinica is NOT NULL.
+        "isPesquisaClinica": False,
+        "anvisaProtocoloEstudo": None,
+        "anvisaProtocoloVersao": None,
+        "anvisaNumeroRegistro": None,
+    }
+
+
+def build_prenatal_input(prenatal: PlannedPrenatal) -> dict[str, Any]:
+    """Build the prenatal block of a gestational encounter."""
+    return {
+        "tipoGravidez": prenatal.pregnancy_type,
+        "alturaUterina": prenatal.uterine_height,
+        "edema": None,
+        "movimentacaoFetal": prenatal.fetal_movement,
+        "gravidezPlanejada": prenatal.planned_pregnancy,
+        "batimentoCardiacoFetal": prenatal.fetal_heart_rate,
+        "batimentoCardiacoFetal2": None,
+        "fonteIdadeGestacional": "DUM",
     }
 
 
 def _load_manifest(path: Path) -> dict[str, Any]:
     if not path.exists():
-        return {"version": 4, "encounters": {}}
+        return {"version": 4, "encounters": {}, "pending": {}}
     try:
         content = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -456,6 +680,10 @@ def _load_manifest(path: Path) -> dict[str, Any]:
             f"unsupported clinical manifest {path}; regenerate the demo "
             "database and manifest for the longitudinal v4 cohort"
         )
+    # Attendances created but not yet finalized. PEC refuses a second open
+    # attendance for the same citizen, so a run interrupted between creation
+    # and finalization must reuse the one it already opened.
+    content.setdefault("pending", {})
     return content
 
 
@@ -488,15 +716,49 @@ def provision_clinical_histories(
     manifest_path: Path,
 ) -> tuple[ProvisionedEncounter, ...]:
     """Create 2-10 verified, finalized SOAP encounters per citizen."""
-    by_role = {assignment.role: assignment for assignment in assignments}
-    if set(by_role) != {"medico", "enfermagem"}:
-        raise PecClientError("clinical assignments must include medico and enfermagem")
+    from pec_demo.coverage import CASES
+
+    by_role_team = {
+        (assignment.role, assignment.team): assignment for assignment in assignments
+    }
+    teams = sorted({assignment.team for assignment in assignments})
+    for team in teams:
+        missing = {"medico", "enfermagem"} - {
+            role for role, item in by_role_team if item == team
+        }
+        if missing:
+            raise PecClientError(
+                f"team {team} has no clinical assignment for {', '.join(sorted(missing))}"
+            )
+    default_team = teams[0]
+
+    clients: dict[str | None, PecGraphQLClient] = {None: client}
+
+    def client_for(assignment: ClinicalAssignment) -> PecGraphQLClient:
+        """Return the client authenticated as the assignment's professional."""
+        if assignment.login is None:
+            return client
+        if assignment.login not in clients:
+            if assignment.password is None:
+                raise PecClientError(
+                    f"assignment {assignment.role}/{assignment.team} has a login "
+                    "without a password"
+                )
+            session = PecGraphQLClient(client.base_url)
+            session.login(assignment.login, assignment.password)
+            clients[assignment.login] = session
+        return clients[assignment.login]
+
+    def team_of(patient: SyntheticPatient) -> int:
+        case = CASES.get(patient.key)
+        return case.team if case else default_team
 
     # Citizen lookup is protected by an operational access. Select the medical
     # assignment before resolving the cohort, then switch per encounter group.
-    doctor = by_role["medico"]
+    doctor = by_role_team[("medico", default_team)]
     client.select_assignment_access(cnes=doctor.cnes, cbo2002=doctor.cbo2002)
     citizens: dict[str, str] = {}
+    documents: dict[str, str] = {}
     medical_records: dict[str, str] = {}
     for patient in patients:
         citizen = client.citizen_by_cpf(patient.cpf)
@@ -505,43 +767,89 @@ def provision_clinical_histories(
                 f"synthetic citizen {patient.key} must be provisioned first"
             )
         citizens[patient.key] = str(citizen["id"])
+        documents[patient.key] = patient.cpf
+        # PEC creates the medical record on the first attendance, not on
+        # registration, so a freshly registered citizen has none yet. It is
+        # resolved lazily, and only by the encounters that actually need it.
         medical_record = citizen.get("prontuario") or {}
-        if not medical_record.get("id"):
-            raise PecClientError(
-                f"synthetic citizen {patient.key} has no medical record"
-            )
-        medical_records[patient.key] = str(medical_record["id"])
+        if medical_record.get("id"):
+            medical_records[patient.key] = str(medical_record["id"])
+
+    def resolve_medical_record(patient_key: str, author: PecGraphQLClient) -> str:
+        if patient_key not in medical_records:
+            citizen = author.citizen_by_cpf(documents[patient_key]) or {}
+            record = citizen.get("prontuario") or {}
+            if not record.get("id"):
+                raise PecClientError(
+                    f"synthetic citizen {patient_key} still has no medical record; "
+                    "an earlier encounter should have created it"
+                )
+            medical_records[patient_key] = str(record["id"])
+        return medical_records[patient_key]
 
     manifest = _load_manifest(manifest_path)
     results = []
     current_role = None
-    procedure_ids: dict[str, str] = {}
+    procedure_ids: dict[tuple[str | None, str, int], str] = {}
     cid_ids: dict[tuple[str, str], str] = {}
     medications: dict[str, dict[str, Any]] = {}
     oral_application_id: str | None = None
     fallback_dose_unit_id: str | None = None
+    exam_procedure_ids: dict[tuple[str, ...], str] = {}
+    immunobiological_ids: dict[str, str] = {}
+    dose_ids: dict[tuple[str, str], str] = {}
+
+    def resolve_procedure_id(author: PecGraphQLClient, codes: tuple[str, ...]) -> str:
+        if codes not in exam_procedure_ids:
+            exam_procedure_ids[codes] = author.procedure_id(codes)
+        return exam_procedure_ids[codes]
+
+    def resolve_immunobiological_id(
+        author: PecGraphQLClient, name: str, search: str
+    ) -> str:
+        if name not in immunobiological_ids:
+            immunobiological_ids[name] = author.immunobiological_id(
+                name, search=search
+            )
+        return immunobiological_ids[name]
+
+    def resolve_dose_id(author: PecGraphQLClient, vaccine: Any) -> str:
+        key = (vaccine.immunobiological, vaccine.dose)
+        if key not in dose_ids:
+            dose_ids[key] = author.immunobiological_dose_id(
+                vaccine.dose,
+                immunobiological_id=resolve_immunobiological_id(
+                    author, vaccine.immunobiological, vaccine.search
+                ),
+            )
+        return dose_ids[key]
+
     for patient in patients:
         sex = "FEMININO" if patient.sex == "F" else "MASCULINO"
         age = _age_on(patient.birth_date, reference_date)
 
-        def resolve_cid_id(code: str) -> str:
+        def resolve_cid_id(code: str, author: PecGraphQLClient) -> str:
             cache_key = (patient.key, code)
             if cache_key not in cid_ids:
-                cid_ids[cache_key] = client.cid10_id(code, sex=sex, age=age)
+                cid_ids[cache_key] = author.cid10_id(code, sex=sex, age=age)
             return cid_ids[cache_key]
 
-        for encounter in build_encounter_plan(patient):
+        for encounter in build_encounter_plan(
+            patient, reference_date=reference_date
+        ):
             role = encounter.role
-            if role != current_role:
-                assignment = by_role[role]
-                client.select_assignment_access(
+            assignment = by_role_team[(role, team_of(patient))]
+            author = client_for(assignment)
+            if (assignment.login, role, assignment.team) != current_role:
+                author.select_assignment_access(
                     cnes=assignment.cnes,
                     cbo2002=assignment.cbo2002,
                 )
-                current_role = role
-            if role not in procedure_ids:
-                procedure_ids[role] = client.automatic_procedure_id(
-                    by_role[role].automatic_procedure_code
+                current_role = (assignment.login, role, assignment.team)
+            procedure_key = (assignment.login, role, assignment.team)
+            if procedure_key not in procedure_ids:
+                procedure_ids[procedure_key] = author.automatic_procedure_id(
+                    assignment.automatic_procedure_code
                 )
             previous = manifest["encounters"].get(encounter.key)
             if previous:
@@ -550,21 +858,58 @@ def provision_clinical_histories(
             # PEC's standard nursing access is CIAP-only. Medical encounters
             # receive selective CID-10 coding; omissions are intentional.
             if role == "medico" and encounter.cid10_code:
-                ciap_id = None
-                cid10_id = resolve_cid_id(encounter.cid10_code)
-            else:
+                # A prenatal encounter must carry both codes; PEC rejects the
+                # block unless the evaluated condition relates a CIAP-2 to a
+                # CID-10.
                 ciap_id = (
-                    client.ciap_id(PREVENTIVE_CIAP, sex=sex, age=age)
-                    if role == "enfermagem"
+                    author.ciap_id(encounter.ciap_code, sex=sex, age=age)
+                    if encounter.ciap_code
                     else None
                 )
+                cid10_id = resolve_cid_id(encounter.cid10_code, author)
+            else:
+                # Every individual attendance must carry at least one evaluated
+                # problem or condition; PEC rejects the payload otherwise. A
+                # preventive CIAP keeps a routine follow-up valid without
+                # inventing a diagnosis or opening a problem.
+                ciap_id = author.ciap_id(
+                    encounter.ciap_code or PREVENTIVE_CIAP,
+                    sex=sex,
+                    age=age,
+                )
                 cid10_id = None
+            evolved_problem = None
+            if encounter.prenatal and not encounter.include_problem:
+                ongoing = author.active_problem_by_cid(
+                    medical_record_id=resolve_medical_record(patient.key, author),
+                    cid10_id=cid10_id,
+                    ciap_id=ciap_id,
+                )
+                if not ongoing:
+                    raise PecClientError(
+                        f"no open pregnancy to evolve before {encounter.key}"
+                    )
+                evaluation = ongoing.get("evolucaoAvaliacaoCiapCid") or {}
+                if not evaluation.get("id"):
+                    raise PecClientError(
+                        f"open pregnancy has no evaluation link before {encounter.key}"
+                    )
+                evolved_problem = {
+                    "problem_id": str(ongoing["id"]),
+                    "evaluation_id": str(evaluation["id"]),
+                }
             resolved = []
+            resolved_ciap_id = (
+                author.ciap_id(encounter.resolve_ciap_code, sex=sex, age=age)
+                if encounter.resolve_ciap_code
+                else None
+            )
             for code in encounter.resolve_cid10_codes:
-                resolved_cid_id = resolve_cid_id(code)
-                problem = client.active_problem_by_cid(
-                    medical_record_id=medical_records[patient.key],
+                resolved_cid_id = resolve_cid_id(code, author)
+                problem = author.active_problem_by_cid(
+                    medical_record_id=resolve_medical_record(patient.key, author),
                     cid10_id=resolved_cid_id,
+                    ciap_id=resolved_ciap_id,
                 )
                 if not problem:
                     raise PecClientError(
@@ -580,6 +925,9 @@ def provision_clinical_histories(
                 resolved.append(
                     {
                         "cid10_id": resolved_cid_id,
+                        # A dual-coded problem must be resolved with both of
+                        # its codes: one alone is refused, none is refused too.
+                        "ciap_id": resolved_ciap_id,
                         "problem_id": str(problem["id"]),
                         "evaluation_id": str(evaluation["id"]),
                         "start_date": last_evolution.get("dataInicio"),
@@ -588,11 +936,11 @@ def provision_clinical_histories(
             prescription_inputs = []
             for prescription in encounter.prescriptions:
                 if oral_application_id is None:
-                    oral_application_id = client.medication_application_id("Oral")
+                    oral_application_id = author.medication_application_id("Oral")
                 if fallback_dose_unit_id is None:
-                    fallback_dose_unit_id = client.dose_unit_id("Comprimido")
+                    fallback_dose_unit_id = author.dose_unit_id("Comprimido")
                 if prescription.medication_query not in medications:
-                    medications[prescription.medication_query] = client.medication(
+                    medications[prescription.medication_query] = author.medication(
                         prescription.medication_query,
                         concentration=prescription.concentration,
                     )
@@ -604,22 +952,86 @@ def provision_clinical_histories(
                         fallback_dose_unit_id=fallback_dose_unit_id,
                     )
                 )
-            attendance = client.save_attendance(citizens[patient.key])
-            attendance_id = str(attendance["id"])
-            started = client.start_individual_attendance(attendance_id)
+            procedure_inputs = [
+                {
+                    "id": None,
+                    "procedimentoId": int(resolve_procedure_id(author, item.codes)),
+                    "observacao": item.note,
+                }
+                for item in encounter.procedures
+            ]
+            exam_result_inputs = []
+            for exam in encounter.exam_results:
+                exam_result_inputs.append(
+                    build_exam_result_input(
+                        exam,
+                        procedure_id=resolve_procedure_id(author, exam.codes),
+                        encounter_date=encounter.encounter_date or reference_date,
+                    )
+                )
+            exam_request_inputs = []
+            if encounter.screenings:
+                exam_request_inputs.append(
+                    build_exam_request_input(
+                        procedure_ids=tuple(
+                            resolve_procedure_id(author, item.codes)
+                            for item in encounter.screenings
+                        ),
+                        justification=(
+                            "Rastreamento sintético conforme cenário de demonstração."
+                        ),
+                    )
+                )
+            vaccination_inputs = []
+            for vaccine in encounter.vaccinations:
+                immunobiological_id = resolve_immunobiological_id(
+                    author, vaccine.immunobiological, vaccine.search
+                )
+                vaccination_inputs.append(
+                    build_vaccination_input(
+                        vaccine,
+                        immunobiological_id=immunobiological_id,
+                        dose_id=resolve_dose_id(author, vaccine),
+                        encounter_date=encounter.encounter_date or reference_date,
+                    )
+                )
+            opened = manifest["pending"].get(encounter.key)
+            if opened:
+                attendance_id = str(opened["attendance_id"])
+            else:
+                attendance = author.save_attendance(citizens[patient.key])
+                attendance_id = str(attendance["id"])
+                # Persist before finalizing: if the finalization fails, the next
+                # run reuses this attendance instead of opening a second one.
+                manifest["pending"][encounter.key] = {
+                    "attendance_id": attendance_id,
+                    "citizen_id": citizens[patient.key],
+                }
+                _write_manifest(manifest_path, manifest)
+            started = author.start_individual_attendance(attendance_id)
             try:
-                finalized = client.save_individual_attendance(
+                finalized = author.save_individual_attendance(
                     build_individual_attendance_input(
                         encounter,
                         attendance_id=attendance_id,
                         ciap_id=ciap_id,
                         cid10_id=cid10_id,
                         resolved_problems=tuple(resolved),
+                        evolved_problem=evolved_problem,
                         prescription_inputs=tuple(prescription_inputs),
+                        procedure_inputs=tuple(procedure_inputs),
+                        exam_result_inputs=tuple(exam_result_inputs),
+                        exam_request_inputs=tuple(exam_request_inputs),
+                        vaccination_inputs=tuple(vaccination_inputs),
+                        prenatal_input=(
+                            build_prenatal_input(encounter.prenatal)
+                            if encounter.prenatal
+                            else None
+                        ),
                         # Attendances are created through the live PEC API and cannot
                         # be backdated to the cohort reference date.
                         resolution_date=date.today(),
-                        automatic_procedure_id=procedure_ids[role],
+                        automatic_procedure_id=procedure_ids[procedure_key],
                     )
                 )
             except PecClientError as error:
@@ -640,6 +1052,7 @@ def provision_clinical_histories(
                     f"professional attendance changed while finalizing {encounter.key}"
                 )
             manifest["encounters"][encounter.key] = asdict(result)
+            manifest["pending"].pop(encounter.key, None)
             _write_manifest(manifest_path, manifest)
             results.append(result)
     return tuple(results)

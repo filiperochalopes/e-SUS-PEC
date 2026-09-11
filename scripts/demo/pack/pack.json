@@ -9,11 +9,11 @@
   "cep": "40000000",
   "base_backup": {
     "filename": "base.backup",
-    "sha256": "ce26539a33051b5206751436d5513b33674c2a863f2470974e809e453ced4da2"
+    "sha256": "5cc423d4bc66e0c29846c8bc031aaa8d1ed90ef3474493863a26c6830e73bd89"
   },
   "clinical_manifest": {
     "filename": "clinical_manifest.json",
-    "sha256": "b1eb4840040eed961986c8c6b271b13f58aa62db5b00f3cb91cdb43f0ec35113"
+    "sha256": "779fece923e2efa28c0ce50ee5e54da361ef78f6e38ffba4ac61069269037f97"
   },
   "jar": {
     "filename": "eSUS-AB-PEC-5.5.28-Linux64.jar",

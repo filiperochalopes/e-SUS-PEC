@@ -17,7 +17,7 @@ from pec_demo.clinical import (
     build_encounter_plan,
     provision_clinical_histories,
 )
-from pec_demo.factory import build_demo_dataset
+from pec_demo.factory import ACS_CBO, build_demo_dataset
 from pec_demo.patients import build_patient_cohort
 from pec_demo.coverage import CASES, build_coverage_cohort
 from pec_demo.pec_client import PecClientError, PecGraphQLClient
@@ -51,6 +51,47 @@ def _sum_stat(
     return int(import_result.get(new_field) or 0) + int(
         import_result.get(updated_field) or 0
     )
+
+
+def _clinical_assignments(dataset, *, administrator) -> tuple[ClinicalAssignment, ...]:
+    """Return a medical and a nursing access inside each demo team.
+
+    The bootstrap alternated units per role, which attached nursing encounters
+    to the unit the citizen does not belong to.  Each team now authors its own
+    encounters: the multiprofile professional covers medicine in the first unit
+    and nursing in the second, and the two single-role professionals cover the
+    remaining pair.
+    """
+    assignments = []
+    for team, unit in enumerate(dataset.units):
+        for role, cbo, procedure in (
+            ("medico", DOCTOR_CBO, DOCTOR_PROCEDURE),
+            ("enfermagem", NURSE_CBO, NURSE_PROCEDURE),
+        ):
+            owner = next(
+                item
+                for item in dataset.professionals
+                if any(
+                    entry.cnes == unit.cnes and entry.cbo == cbo
+                    for entry in item.assignments
+                )
+            )
+            assignments.append(
+                ClinicalAssignment(
+                    role=role,
+                    cnes=unit.cnes,
+                    cbo2002=cbo,
+                    automatic_procedure_code=procedure,
+                    team=team,
+                    login=None if owner.key == administrator.key else owner.cpf,
+                    password=(
+                        None
+                        if owner.key == administrator.key
+                        else owner.planned_password
+                    ),
+                )
+            )
+    return tuple(assignments)
 
 
 def refresh_demo_pack(
@@ -161,46 +202,56 @@ def refresh_demo_pack(
         ),
         update_existing_territory=False,
     )
+    clinical_assignments = _clinical_assignments(dataset, administrator=administrator)
     histories = provision_clinical_histories(
         cohort,
         client=clinical_client,
-        assignments=(
-            ClinicalAssignment(
-                "medico",
-                medical_unit.cnes,
-                DOCTOR_CBO,
-                DOCTOR_PROCEDURE,
-            ),
-            ClinicalAssignment(
-                "enfermagem",
-                nursing_unit.cnes,
-                NURSE_CBO,
-                NURSE_PROCEDURE,
-            ),
-        ),
+        assignments=clinical_assignments,
         reference_date=generated_on,
         manifest_path=clinical_manifest_path,
     )
     if reference_date is not None:
         extension = build_coverage_cohort(seed=seed, reference_date=reference_date)
+        # Every extended citizen is registered by the community health agent of
+        # its own team, so the individual registration form carries the right
+        # author and microarea for the territorial filters.
+        agents: dict[int, PecGraphQLClient] = {}
         for patient in extension:
             case = CASES[patient.key]
-            unit = dataset.units[case.unit]
-            acs = next(p for p in dataset.professionals if p.key == f"acs_{case.unit + 1}")
-            registration_client = PecGraphQLClient(base_url)
-            registration_client.login(acs.cpf, acs.planned_password)
+            unit = dataset.units[case.team]
+            team = unit.teams[0]
+            if case.team not in agents:
+                agent = next(
+                    item
+                    for item in dataset.professionals
+                    if item.key == f"acs_{case.team + 1}"
+                )
+                session = PecGraphQLClient(base_url)
+                session.login(agent.cpf, agent.planned_password)
+                agents[case.team] = session
             patients += provision_citizens(
-                (patient,), client=registration_client,
-                municipality_ibge=municipality_ibge, municipality_name=municipality_name,
-                cnes=unit.cnes, ine=unit.teams[0].ine, cbo2002="515105",
-                territory_assignments=(TerritoryAssignment(unit.cnes, unit.teams[0].ine, "515105", (case.microarea,)),),
+                (patient,),
+                client=agents[case.team],
+                municipality_ibge=municipality_ibge,
+                municipality_name=municipality_name,
+                cnes=unit.cnes,
+                ine=team.ine,
+                cbo2002=ACS_CBO,
+                territory_assignments=(
+                    TerritoryAssignment(
+                        cnes=unit.cnes,
+                        ine=team.ine,
+                        cbo2002=ACS_CBO,
+                        microareas=(case.microarea,),
+                    ),
+                ),
             )
         histories += provision_clinical_histories(
-            extension, client=clinical_client,
-            assignments=(
-                ClinicalAssignment("medico", medical_unit.cnes, DOCTOR_CBO, DOCTOR_PROCEDURE),
-                ClinicalAssignment("enfermagem", nursing_unit.cnes, NURSE_CBO, NURSE_PROCEDURE),
-            ), reference_date=reference_date, manifest_path=clinical_manifest_path,
+            extension,
+            client=clinical_client,
+            assignments=clinical_assignments,
+            reference_date=reference_date,
+            manifest_path=clinical_manifest_path,
         )
     return RefreshedPack(
         credentials=len(credentials),
@@ -266,7 +317,11 @@ def validate_demo_pack(
     if manifest.get("version") != 4 or not isinstance(encounters, dict):
         raise PecClientError("unsupported clinical manifest")
     planned = {
-        item.key: item for patient in cohort for item in build_encounter_plan(patient)
+        item.key: item
+        for patient in cohort
+        for item in build_encounter_plan(
+            patient, reference_date=reference_date or generated_on
+        )
     }
     if set(encounters) != set(planned):
         raise PecClientError("clinical manifest differs from the encounter plan")
@@ -275,15 +330,15 @@ def validate_demo_pack(
     for key in sorted(planned):
         plan = planned[key]
         if plan.role != current_role:
-            assignment = (
+            # Reading a prontuario needs any clinical access. The administrator
+            # holds medicine in the first unit and nursing in the second, so
+            # the pair must follow that, not a single unit.
+            cnes, cbo = (
                 (medical_unit.cnes, DOCTOR_CBO)
                 if plan.role == "medico"
                 else (nursing_unit.cnes, NURSE_CBO)
             )
-            client.select_assignment_access(
-                cnes=assignment[0],
-                cbo2002=assignment[1],
-            )
+            client.select_assignment_access(cnes=cnes, cbo2002=cbo)
             current_role = plan.role
         record = encounters[key]
         attendance = client.individual_attendance(record["attendance_professional_id"])

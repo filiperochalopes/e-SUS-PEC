@@ -12,7 +12,18 @@ UI e sem credenciais externas.
 Opções:
   --output ARQUIVO   Backup final (padrão: scripts/demo/output/pec-demo-<versão>.backup)
   --port PORTA       Porta HTTP local isolada (padrão: 18082)
+  --pause-for-report-processing
+                     Pausa no passo 7 para que o processamento oficial de
+                     relatórios seja executado na tela de administração, e
+                     aguarda a conclusão antes de exportar. Sem esta opção o
+                     backup é publicado com selo parcial.
+  --reference-date D Data clínica de referência YYYY-MM-DD (padrão: hoje em
+                     America/Bahia). Define a cronologia da coorte estendida
+                     e é registrada nos artefatos.
   --keep-runtime     Preserva o diretório temporário para diagnóstico
+  --keep-environment Não derruba o Docker ao terminar (implica --keep-runtime).
+                     O PEC e o banco continuam de pé para diagnóstico, e o
+                     comando para removê-los é impresso no final.
   --upgrade-jar NOME       Gera um novo pack-base: usa o pack/base.backup
                            atual como semente, mas sobe o PEC a partir deste
                            JAR (arquivo em REPO_ROOT/NOME) em vez do JAR
@@ -41,6 +52,9 @@ Para um --output /caminho/NOME.backup, o script também publica:
   /caminho/NOME.clinical-manifest.json
   /caminho/NOME.patients.csv
   /caminho/NOME.cnes.zip
+  /caminho/NOME.coverage-contract.json
+  /caminho/NOME.chronology.json
+  /caminho/NOME.preservation.json
 
 O script:
   1. valida o pack base e o JAR por SHA-256;
@@ -62,8 +76,11 @@ COMPOSE_FILE="$SCRIPT_DIR/compose.factory.yml"
 OUTPUT=
 APP_PORT=18082
 KEEP_RUNTIME=false
+KEEP_ENVIRONMENT=false
 UPGRADE_JAR_FILENAME=
 UPGRADE_PEC_VERSION=
+REFERENCE_DATE=
+PAUSE_FOR_PROCESSING=false
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -79,6 +96,20 @@ while [ "$#" -gt 0 ]; do
             ;;
         --keep-runtime)
             KEEP_RUNTIME=true
+            shift
+            ;;
+        --keep-environment)
+            KEEP_ENVIRONMENT=true
+            KEEP_RUNTIME=true
+            shift
+            ;;
+        --reference-date)
+            [ "$#" -ge 2 ] || { echo "Falta valor para --reference-date" >&2; exit 2; }
+            REFERENCE_DATE=$2
+            shift 2
+            ;;
+        --pause-for-report-processing)
+            PAUSE_FOR_PROCESSING=true
             shift
             ;;
         --upgrade-jar)
@@ -106,6 +137,17 @@ done
 case "$APP_PORT" in
     *[!0-9]*|'') echo "Porta inválida: $APP_PORT" >&2; exit 2 ;;
 esac
+
+# The clinical reference date is captured once per run so every artifact and
+# every generated date agree, even if the build crosses midnight.
+[ -n "$REFERENCE_DATE" ] || REFERENCE_DATE=$(TZ=America/Bahia date '+%Y-%m-%d')
+python3 -c 'import sys
+from datetime import date
+try:
+    date.fromisoformat(sys.argv[1])
+except ValueError:
+    sys.exit("Data de referência inválida: " + sys.argv[1])
+' "$REFERENCE_DATE" || exit 2
 
 if [ -n "$UPGRADE_JAR_FILENAME" ] || [ -n "$UPGRADE_PEC_VERSION" ]; then
     [ -n "$UPGRADE_JAR_FILENAME" ] && [ -n "$UPGRADE_PEC_VERSION" ] || {
@@ -226,12 +268,18 @@ CREDENTIALS="$OUTPUT_DIR/$OUTPUT_NAME.credentials.txt"
 MANIFEST="$OUTPUT_DIR/$OUTPUT_NAME.clinical-manifest.json"
 PATIENT_INDEX="$OUTPUT_DIR/$OUTPUT_NAME.patients.csv"
 CNES_ARCHIVE="$OUTPUT_DIR/$OUTPUT_NAME.cnes.zip"
+COVERAGE_CONTRACT="$OUTPUT_DIR/$OUTPUT_NAME.coverage-contract.json"
+CHRONOLOGY_REPORT="$OUTPUT_DIR/$OUTPUT_NAME.chronology.json"
+PRESERVATION_REPORT="$OUTPUT_DIR/$OUTPUT_NAME.preservation.json"
 OUTPUT_TEMP="$OUTPUT.$PROJECT_NAME.tmp"
 VALIDATION_TEMP="$VALIDATION.$PROJECT_NAME.tmp"
 CREDENTIALS_TEMP="$CREDENTIALS.$PROJECT_NAME.tmp"
 MANIFEST_TEMP="$MANIFEST.$PROJECT_NAME.tmp"
 PATIENT_INDEX_TEMP="$PATIENT_INDEX.$PROJECT_NAME.tmp"
 CNES_ARCHIVE_TEMP="$CNES_ARCHIVE.$PROJECT_NAME.tmp"
+COVERAGE_CONTRACT_TEMP="$COVERAGE_CONTRACT.$PROJECT_NAME.tmp"
+CHRONOLOGY_REPORT_TEMP="$CHRONOLOGY_REPORT.$PROJECT_NAME.tmp"
+PRESERVATION_REPORT_TEMP="$PRESERVATION_REPORT.$PROJECT_NAME.tmp"
 
 mkdir -p "$DEMO_BACKUP_DIR" "$DEMO_OPT_DIR"
 cp "$BASE_BACKUP" "$DEMO_BACKUP_DIR/base.backup"
@@ -253,7 +301,16 @@ cleanup() {
     set +e
     compose exec -T pec chmod -R a+rwX /opt/e-SUS /backups \
         >/dev/null 2>&1
-    compose down -v --remove-orphans >/dev/null 2>&1 || true
+    if [ "$KEEP_ENVIRONMENT" = true ]; then
+        echo
+        echo "Ambiente Docker preservado para diagnóstico:"
+        echo "  projeto=$PROJECT_NAME"
+        echo "  pec=http://127.0.0.1:$APP_PORT"
+        echo "  credenciais=$RUNTIME/demo_credentials.txt"
+        echo "  remover=docker compose --project-name $PROJECT_NAME -f $COMPOSE_FILE down -v --remove-orphans"
+    else
+        compose down -v --remove-orphans >/dev/null 2>&1 || true
+    fi
     rm -f "$PLACEHOLDER_BACKUP" || true
     rm -f \
         "$OUTPUT_TEMP" \
@@ -261,7 +318,10 @@ cleanup() {
         "$CREDENTIALS_TEMP" \
         "$MANIFEST_TEMP" \
         "$PATIENT_INDEX_TEMP" \
-        "$CNES_ARCHIVE_TEMP" || true
+        "$CNES_ARCHIVE_TEMP" \
+        "$COVERAGE_CONTRACT_TEMP" \
+        "$CHRONOLOGY_REPORT_TEMP" \
+        "$PRESERVATION_REPORT_TEMP" || true
     if [ "$KEEP_RUNTIME" = false ]; then
         case "$RUNTIME" in
             "$SCRIPT_DIR"/.factory-runtime.*)
@@ -334,9 +394,20 @@ recreate_database_from() {
         -1 --no-owner --no-acl "$archive"
 }
 
-echo "[1/8] Gerando e validando o CNES sintético..."
-UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
-    uv run --project "$SCRIPT_DIR" pec-demo generate-cnes \
+demo_cli() {
+    UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
+        uv run --project "$SCRIPT_DIR" pec-demo "$@"
+}
+
+psql_db() {
+    compose exec -T db psql \
+        -U "$DEMO_POSTGRES_USER" -d "$DEMO_POSTGRES_DB" "$@"
+}
+
+echo "Data clínica de referência: $REFERENCE_DATE"
+
+echo "[1/12] Gerando e validando o CNES sintético..."
+demo_cli generate-cnes \
     --output-dir "$RUNTIME/cnes" \
     --backend-jar "$JAR_PATH" \
     --municipality-ibge "$MUNICIPALITY_IBGE" \
@@ -344,9 +415,10 @@ UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
     --cep "$CEP" \
     --seed "$SEED" \
     --generated-on "$GENERATED_ON" \
-    --pec-version "$PEC_VERSION"
+    --pec-version "$PEC_VERSION" \
+    --include-acs
 
-echo "[2/8] Construindo ambiente Docker isolado em treinamento..."
+echo "[2/12] Construindo ambiente Docker isolado em treinamento..."
 compose build pec
 compose up -d db
 wait_database
@@ -354,9 +426,20 @@ recreate_database_from /backups/base.backup
 compose up -d pec
 wait_pec
 
-echo "[3/8] Importando CNES e atualizando o pack pela API oficial..."
-UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
-    uv run --project "$SCRIPT_DIR" pec-demo refresh-pack \
+echo "[3/12] Assinando a coorte protegida antes de qualquer escrita..."
+demo_cli preservation-script \
+    --output "$RUNTIME/preservation.sql" \
+    --seed "$SEED" \
+    --generated-on "$GENERATED_ON"
+psql_db -Atq -v ON_ERROR_STOP=1 \
+    < "$RUNTIME/preservation.sql" > "$RUNTIME/preservation-before.json"
+[ -s "$RUNTIME/preservation-before.json" ] || {
+    echo "Assinatura de preservação vazia; o pack base não tem a coorte protegida." >&2
+    exit 1
+}
+
+echo "[4/12] Importando CNES e atualizando o pack pela API oficial..."
+demo_cli refresh-pack \
     --base-url "http://127.0.0.1:$APP_PORT" \
     --cnes-archive "$RUNTIME/cnes/cnes-demo.zip" \
     --credentials-file "$RUNTIME/demo_credentials.txt" \
@@ -367,9 +450,93 @@ UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
     --cep "$CEP" \
     --seed "$SEED" \
     --generated-on "$GENERATED_ON" \
-    --pec-version "$PEC_VERSION"
+    --pec-version "$PEC_VERSION" \
+    --reference-date "$REFERENCE_DATE"
 
-echo "[4/8] Recriando o PEC em modo produção..."
+echo "[5/12] Aplicando a cronologia clínica planejada..."
+demo_cli plan-chronology \
+    --manifest-file "$RUNTIME/clinical_manifest.json" \
+    --output-sql "$RUNTIME/chronology.sql" \
+    --output-report "$RUNTIME/chronology.json" \
+    --seed "$SEED" \
+    --generated-on "$GENERATED_ON" \
+    --reference-date "$REFERENCE_DATE"
+psql_db -v ON_ERROR_STOP=1 < "$RUNTIME/chronology.sql" >/dev/null
+# Re-applying must be a no-op: the adapter shifts by a delta that is now zero.
+psql_db -v ON_ERROR_STOP=1 < "$RUNTIME/chronology.sql" >/dev/null
+
+echo "[6/12] Verificando a preservação da coorte protegida..."
+psql_db -Atq -v ON_ERROR_STOP=1 \
+    < "$RUNTIME/preservation.sql" > "$RUNTIME/preservation-after.json"
+demo_cli check-preservation \
+    --before "$RUNTIME/preservation-before.json" \
+    --after "$RUNTIME/preservation-after.json" \
+    --output-report "$RUNTIME/preservation.json"
+
+echo "[7/12] Verificando o processamento oficial de relatórios..."
+REPORT_PROCESSING=false
+processing_enabled=$(psql_db -Atq -c "
+SELECT CASE WHEN coalesce(max(ds_inteiro), 1) = 1 THEN 'true' ELSE 'false' END
+FROM tb_config_sistema
+WHERE co_config_sistema = 'CONFIGURACAOPROCESSAMENTORELATORIOS';" 2>/dev/null || echo unknown)
+individual_facts=$(psql_db -Atq -c "
+SELECT count(*) FROM tb_fat_atendimento_individual;" 2>/dev/null || echo 0)
+echo "  processamento_habilitado=$processing_enabled"
+echo "  fatos_atendimento_individual=$individual_facts"
+if [ "$individual_facts" -gt 0 ] 2>/dev/null; then
+    REPORT_PROCESSING=true
+elif [ "$PAUSE_FOR_PROCESSING" = true ] && [ -r /dev/tty ]; then
+    administrator_login=$(sed -n 's/^CPF \/ login: //p' \
+        "$RUNTIME/demo_credentials.txt" | head -1)
+    cat <<EOF
+
+  O ETL de relatórios precisa ser executado uma vez, pela tela oficial.
+  Em 5.5.28 não existe endpoint REST, mutação GraphQL, operação JMX nem
+  agendador que o dispare: a ação vive na administração de relatórios.
+
+    1. abra  http://127.0.0.1:$APP_PORT
+    2. entre com o login $administrator_login
+       (a senha está em $RUNTIME/demo_credentials.txt)
+    3. vá em Administração > Processamento de relatórios e clique Processar
+    4. volte aqui e pressione ENTER
+
+EOF
+    printf '  Pressione ENTER depois de clicar em Processar: '
+    read -r _ < /dev/tty
+    echo "  Aguardando o processamento concluir..."
+    attempts=0
+    while [ "$attempts" -lt 240 ]; do
+        individual_facts=$(psql_db -Atq -c "
+SELECT count(*) FROM tb_fat_atendimento_individual;" 2>/dev/null || echo 0)
+        if [ "$individual_facts" -gt 0 ] 2>/dev/null; then
+            REPORT_PROCESSING=true
+            echo "  Processamento concluído: $individual_facts fatos de atendimento individual."
+            break
+        fi
+        attempts=$((attempts + 1))
+        if [ $((attempts % 6)) -eq 0 ]; then
+            echo "  ainda processando... $((attempts * 10))s"
+        fi
+        sleep 10
+    done
+    [ "$REPORT_PROCESSING" = true ] || {
+        echo "  O processamento não produziu fatos dentro do limite de 40 minutos." >&2
+    }
+fi
+if [ "$REPORT_PROCESSING" != true ]; then
+    cat >&2 <<'WARN'
+  AVISO: o ETL de relatórios não foi executado.
+  Em 5.5.28 o único gatilho é a ação "Processar" da tela de administração de
+  relatórios, que trafega pelo canal IPP (POST /esus/performerbrowser/ipp).
+  Não existe endpoint REST, mutação GraphQL, operação JMX nem agendador.
+  O backup será publicado sem o selo de validação completa: os dados
+  operacionais e a cronologia estão corretos, mas as tabelas FAT/DIM seguem
+  vazias e os relatórios Saúde 360 não retornarão resultados até que o
+  processamento seja executado na instalação de destino.
+WARN
+fi
+
+echo "[8/12] Recriando o PEC em modo produção..."
 compose stop pec
 DEMO_TRAINING=false
 export DEMO_TRAINING
@@ -377,22 +544,21 @@ compose build pec
 compose up -d --force-recreate pec
 wait_pec
 
-echo "[5/8] Exportando o archive PostgreSQL custom..."
+echo "[9/12] Exportando o archive PostgreSQL custom..."
 compose exec -T db pg_dump \
     -U "$DEMO_POSTGRES_USER" -d "$DEMO_POSTGRES_DB" \
     -Fc --blobs --no-owner --no-acl \
     -f /backups/candidate.backup
 compose exec -T db pg_restore -l /backups/candidate.backup >/dev/null
 
-echo "[6/8] Restaurando o próprio candidato..."
+echo "[10/12] Restaurando o próprio candidato..."
 compose stop pec
 recreate_database_from /backups/candidate.backup
 compose start pec
 wait_pec
 
-echo "[7/8] Executando validação estrita e somente leitura..."
-UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
-    uv run --project "$SCRIPT_DIR" pec-demo validate-pack \
+echo "[11/12] Executando validação estrita e somente leitura..."
+demo_cli validate-pack \
     --base-url "http://127.0.0.1:$APP_PORT" \
     --manifest-file "$RUNTIME/clinical_manifest.json" \
     --municipality-ibge "$MUNICIPALITY_IBGE" \
@@ -400,15 +566,35 @@ UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
     --cep "$CEP" \
     --seed "$SEED" \
     --generated-on "$GENERATED_ON" \
-    --pec-version "$PEC_VERSION"
+    --pec-version "$PEC_VERSION" \
+    --reference-date "$REFERENCE_DATE" \
+    > "$RUNTIME/validation-counts.txt"
+cat "$RUNTIME/validation-counts.txt"
 
-echo "[8/8] Publicando artefatos validados..."
+measured() {
+    value=$(sed -n "s/^$1=//p" "$RUNTIME/validation-counts.txt" | tail -1)
+    case "$value" in
+        ''|*[!0-9]*)
+            echo "Contagem ausente ou inválida na validação: $1" >&2
+            exit 1
+            ;;
+    esac
+    echo "$value"
+}
+MEASURED_CREDENTIALS=$(measured validated_credentials)
+MEASURED_ASSIGNMENTS=$(measured validated_assignments)
+MEASURED_PATIENTS=$(measured validated_patients)
+MEASURED_HISTORIES=$(measured validated_histories)
+
+echo "[12/12] Publicando artefatos validados..."
 mkdir -p "$OUTPUT_DIR"
-UV_CACHE_DIR="${UV_CACHE_DIR:-$RUNTIME/uv-cache}" \
-    uv run --project "$SCRIPT_DIR" pec-demo generate-patient-index \
+demo_cli generate-patient-index \
     --output "$RUNTIME/patients.csv" \
     --seed "$SEED" \
     --generated-on "$GENERATED_ON"
+demo_cli publish-coverage-contract \
+    --output "$RUNTIME/coverage-contract.json" \
+    --reference-date "$REFERENCE_DATE"
 
 candidate_sha=$(sha256_file "$DEMO_BACKUP_DIR/candidate.backup")
 candidate_size=$(wc -c < "$DEMO_BACKUP_DIR/candidate.backup" | tr -d ' ')
@@ -418,12 +604,17 @@ import json
 import sys
 from pathlib import Path
 
+report_processing = "$REPORT_PROCESSING" == "true"
 Path(sys.argv[1]).write_text(json.dumps({
-    "schema_version": 1,
-    "status": "validated",
+    "schema_version": 2,
+    # A step that did not run must show as not run and must withhold the
+    # complete-validation seal.
+    "status": "validated" if report_processing else
+              "validated-without-report-processing",
     "validated_at": "$validated_at",
     "pec_version": "$PEC_VERSION",
     "seed": $SEED,
+    "reference_date": "$REFERENCE_DATE",
     "synthetic_only": True,
     "backup": {
         "filename": "$(basename "$OUTPUT")",
@@ -435,10 +626,19 @@ Path(sys.argv[1]).write_text(json.dumps({
         "cnes_imported_by_api": True,
         "production_mode": True,
         "round_trip_restore": True,
-        "credentials": 3,
-        "assignments": 4,
-        "patients": 10,
-        "histories": 60,
+        "chronology_applied": True,
+        "chronology_reapplied_without_change": True,
+        "protected_cohort_preserved": True,
+        "official_report_processing": report_processing,
+        "credentials": $MEASURED_CREDENTIALS,
+        "assignments": $MEASURED_ASSIGNMENTS,
+        "patients": $MEASURED_PATIENTS,
+        "histories": $MEASURED_HISTORIES,
+    },
+    "artifacts": {
+        "coverage_contract": "$(basename "$COVERAGE_CONTRACT")",
+        "chronology": "$(basename "$CHRONOLOGY_REPORT")",
+        "preservation": "$(basename "$PRESERVATION_REPORT")",
     },
 }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
@@ -449,6 +649,9 @@ cp "$RUNTIME/demo_credentials.txt" "$CREDENTIALS_TEMP"
 cp "$RUNTIME/clinical_manifest.json" "$MANIFEST_TEMP"
 cp "$RUNTIME/patients.csv" "$PATIENT_INDEX_TEMP"
 cp "$RUNTIME/cnes/cnes-demo.zip" "$CNES_ARCHIVE_TEMP"
+cp "$RUNTIME/coverage-contract.json" "$COVERAGE_CONTRACT_TEMP"
+cp "$RUNTIME/chronology.json" "$CHRONOLOGY_REPORT_TEMP"
+cp "$RUNTIME/preservation.json" "$PRESERVATION_REPORT_TEMP"
 chmod 600 "$CREDENTIALS_TEMP"
 mv "$OUTPUT_TEMP" "$OUTPUT"
 mv "$VALIDATION_TEMP" "$VALIDATION"
@@ -456,6 +659,9 @@ mv "$CREDENTIALS_TEMP" "$CREDENTIALS"
 mv "$MANIFEST_TEMP" "$MANIFEST"
 mv "$PATIENT_INDEX_TEMP" "$PATIENT_INDEX"
 mv "$CNES_ARCHIVE_TEMP" "$CNES_ARCHIVE"
+mv "$COVERAGE_CONTRACT_TEMP" "$COVERAGE_CONTRACT"
+mv "$CHRONOLOGY_REPORT_TEMP" "$CHRONOLOGY_REPORT"
+mv "$PRESERVATION_REPORT_TEMP" "$PRESERVATION_REPORT"
 
 echo
 echo "Backup demo criado com sucesso:"
@@ -466,3 +672,13 @@ echo "  credentials=$CREDENTIALS"
 echo "  clinical_manifest=$MANIFEST"
 echo "  patient_index=$PATIENT_INDEX"
 echo "  cnes=$CNES_ARCHIVE"
+echo "  coverage_contract=$COVERAGE_CONTRACT"
+echo "  chronology=$CHRONOLOGY_REPORT"
+echo "  preservation=$PRESERVATION_REPORT"
+echo "  reference_date=$REFERENCE_DATE"
+if [ "$REPORT_PROCESSING" != true ]; then
+    echo
+    echo "ATENÇÃO: selo parcial (validated-without-report-processing)."
+    echo "Execute Administração > Processamento de relatórios na instalação"
+    echo "de destino para que os relatórios Saúde 360 retornem resultados."
+fi

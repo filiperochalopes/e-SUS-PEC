@@ -119,7 +119,7 @@ class FakeClinicalClient:
         assert code
         return code
 
-    def active_problem_by_cid(self, *, medical_record_id, cid10_id):
+    def active_problem_by_cid(self, *, medical_record_id, cid10_id, ciap_id=None):
         return {
             "id": f"{medical_record_id}:{cid10_id}",
             "evolucaoAvaliacaoCiapCid": {
